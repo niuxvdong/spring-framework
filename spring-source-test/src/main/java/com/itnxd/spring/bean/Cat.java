@@ -2,25 +2,25 @@ package com.itnxd.spring.bean;
 
 /**
  * @Author niuxudong
- * @Date 2022/12/3 19:03
+ * @Date 2022/12/3 20:29
  * @Version 1.0
  * @Description
  */
-public class Person {
+public class Cat {
 
 	private String name;
-
-	public void setName(String name) {
-		this.name = name;
-	}
 
 	public String getName() {
 		return name;
 	}
 
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	@Override
 	public String toString() {
-		return "Person{" +
+		return "Cat{" +
 				"name='" + name + '\'' +
 				'}';
 	}
