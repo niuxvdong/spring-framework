@@ -43,7 +43,12 @@ import java.lang.annotation.Target;
  *
  * <p><b>Recommendations for typical Spring configuration scenarios:</b>
  * When a concrete class may be needed in certain scenarios, consider providing stub
- * implementations of your lookup methods. And please remember that lookup methods
+ * implementations of your lookup methods.
+ *
+ * @Bean 标注生成的组件不会生效！
+ * 标注在 get 多例组件方法上
+ *
+ * And please remember that lookup methods
  * won't work on beans returned from {@code @Bean} methods in configuration classes;
  * you'll have to resort to {@code @Inject Provider<TargetBean>} or the like instead.
  *
