@@ -14,7 +14,8 @@ import org.springframework.core.type.AnnotationMetadata;
  * @Version 1.0
  * @Description
  */
-@Import({Person.class, MainConfig.MyImportRegistrar.class,
+@ComponentScan("com.itnxd.spring")
+@Import({/*Person.class, MainConfig.MyImportRegistrar.class,*/
 		MainConfig.MyImportSelector.class}) // 第二种及第三种及第四种创建Bean方式
 @Configuration
 public class MainConfig {
@@ -63,7 +64,8 @@ public class MainConfig {
 		 */
 		@Override
 		public String[] selectImports(AnnotationMetadata importingClassMetadata) {
-			return new String[]{"com.itnxd.spring.bean.Cat"};
+			/*return new String[]{"com.itnxd.spring.bean.Cat"};*/
+			return new String[0];
 		}
 	}
 }
