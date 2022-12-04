@@ -42,6 +42,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
+ * ApplicationContext 的子类，本类组合了 DefaultListableBeanFactory BeanDefinition 资料库。
+ *
  * Generic ApplicationContext implementation that holds a single internal
  * {@link org.springframework.beans.factory.support.DefaultListableBeanFactory}
  * instance and does not assume a specific bean definition format. Implements
@@ -96,8 +98,10 @@ import org.springframework.util.Assert;
  */
 public class GenericApplicationContext extends AbstractApplicationContext implements BeanDefinitionRegistry {
 
+	// 组合了 BeanDefinition 资料库
 	private final DefaultListableBeanFactory beanFactory;
 
+	// 虽然也组合了 资源加载器，但是
 	@Nullable
 	private ResourceLoader resourceLoader;
 

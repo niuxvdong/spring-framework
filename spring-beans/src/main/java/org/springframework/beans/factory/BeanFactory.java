@@ -23,6 +23,10 @@ import org.springframework.lang.Nullable;
 /**
  * The root interface for accessing a Spring bean container.
  *
+ * Spring 容器 最大的接口，根接口 BeanFactory
+ *
+ * 工厂模式-工厂方法模式 -> 创建组件
+ *
  * <p>This is the basic client view of a bean container;
  * further interfaces such as {@link ListableBeanFactory} and
  * {@link org.springframework.beans.factory.config.ConfigurableBeanFactory}
@@ -31,9 +35,9 @@ import org.springframework.lang.Nullable;
  * <p>This interface is implemented by objects that hold a number of bean definitions,
  * each uniquely identified by a String name. Depending on the bean definition,
  * the factory will return either an independent instance of a contained object
- * (the Prototype design pattern), or a single shared instance (a superior
+ * (the Prototype design pattern)【原型模式】, or a single shared instance (a superior
  * alternative to the Singleton design pattern, in which the instance is a
- * singleton in the scope of the factory). Which type of instance will be returned
+ * singleton in the scope of the factory)【单例模式】. Which type of instance will be returned
  * depends on the bean factory configuration: the API is the same. Since Spring
  * 2.0, further scopes are available depending on the concrete application
  * context (e.g. "request" and "session" scopes in a web environment).
@@ -157,6 +161,7 @@ public interface BeanFactory {
 	 * @throws BeanNotOfRequiredTypeException if the bean is not of the required type
 	 * @throws BeansException if the bean could not be created
 	 */
+	// 工厂方法
 	<T> T getBean(String name, Class<T> requiredType) throws BeansException;
 
 	/**

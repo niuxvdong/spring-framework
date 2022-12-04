@@ -211,6 +211,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	private Thread shutdownHook;
 
 	/** ResourcePatternResolver used by this context. */
+	// 1. 抽象容器接口拥有 资源加载接口，策略模式的环境类 context，持有一个策略类的引用
 	private ResourcePatternResolver resourcePatternResolver;
 
 	/** LifecycleProcessor for managing the lifecycle of beans within this context. */
@@ -244,6 +245,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * Create a new AbstractApplicationContext with no parent.
 	 */
 	public AbstractApplicationContext() {
+		// 2. 构造器中进行了注入
 		this.resourcePatternResolver = getResourcePatternResolver();
 	}
 
