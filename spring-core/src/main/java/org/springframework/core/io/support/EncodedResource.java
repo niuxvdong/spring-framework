@@ -40,10 +40,11 @@ import org.springframework.util.ObjectUtils;
  * @since 1.2.6
  * @see Resource#getInputStream()
  * @see java.io.Reader
- * @see java.nio.charset.Charset
+ * @see java.nio.charset.Charset 适配器模式，将 Resource 适配转换成 InputStreamSource
  */
 public class EncodedResource implements InputStreamSource {
 
+	// 组合了原始 Resource
 	private final Resource resource;
 
 	@Nullable
@@ -136,7 +137,7 @@ public class EncodedResource implements InputStreamSource {
 	 * @see #getInputStream()
 	 */
 	public Reader getReader() throws IOException {
-		if (this.charset != null) {
+		if (this.charset != null) { // 包装模式，将原始 InputStream 流 包装为 InputStreamReader
 			return new InputStreamReader(this.resource.getInputStream(), this.charset);
 		}
 		else if (this.encoding != null) {

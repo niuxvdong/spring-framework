@@ -13,6 +13,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 public class MainTest {
 
 	public static void main(String[] args) {
+		// 1. 创建容器，入口
 		ApplicationContext context = new ClassPathXmlApplicationContext("beans.xml");
 		Person person = context.getBean(Person.class);
 		System.out.println(person);

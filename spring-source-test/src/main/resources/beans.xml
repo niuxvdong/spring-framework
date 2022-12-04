@@ -5,7 +5,10 @@
 
 
 	<bean class="com.itnxd.spring.bean.Person" id="person">
-		<property name="name" value="nxd"/>
+		<property name="name" value="小人"/>
 	</bean>
 
+	<bean class="com.itnxd.spring.bean.Cat" id="cat">
+		<property name="name" value="小猫"/>
+	</bean>
 </beans>

@@ -228,7 +228,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		if (resourceLoader instanceof ResourcePatternResolver) {
 			// Resource pattern matching available.
 			try {
-				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location); // 12. 策略模式，资源加载器获取资源
 				int count = loadBeanDefinitions(resources);
 				if (actualResources != null) {
 					Collections.addAll(actualResources, resources);
@@ -262,7 +262,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 		Assert.notNull(locations, "Location array must not be null");
 		int count = 0;
 		for (String location : locations) {
-			count += loadBeanDefinitions(location);
+			count += loadBeanDefinitions(location); // 11. 加载所有配置文件定义的组件，并统计总数
 		}
 		return count;
 	}
