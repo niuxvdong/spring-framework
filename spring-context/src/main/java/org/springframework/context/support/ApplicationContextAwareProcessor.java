@@ -82,7 +82,7 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 		if (!(bean instanceof EnvironmentAware || bean instanceof EmbeddedValueResolverAware ||
 				bean instanceof ResourceLoaderAware || bean instanceof ApplicationEventPublisherAware ||
 				bean instanceof MessageSourceAware || bean instanceof ApplicationContextAware ||
-				bean instanceof ApplicationStartupAware)) {
+				bean instanceof ApplicationStartupAware)) { // 16.1 后置处理器-非指定类型的 Aware 直接返回
 			return bean;
 		}
 
@@ -99,7 +99,7 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			}, acc);
 		}
 		else {
-			invokeAwareInterfaces(bean);
+			invokeAwareInterfaces(bean); // 16.2 执行 Aware 接口方法
 		}
 
 		return bean;
@@ -125,7 +125,7 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			((ApplicationStartupAware) bean).setApplicationStartup(this.applicationContext.getApplicationStartup());
 		}
 		if (bean instanceof ApplicationContextAware) {
-			((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+			((ApplicationContextAware) bean).setApplicationContext(this.applicationContext); // 17. 根据 Aware 类型进行set注入
 		}
 	}
 
