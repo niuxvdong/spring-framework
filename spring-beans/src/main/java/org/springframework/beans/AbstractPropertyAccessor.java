@@ -95,7 +95,7 @@ public abstract class AbstractPropertyAccessor extends TypeConverterSupport impl
 		if (ignoreUnknown) {
 			this.suppressNotWritablePropertyException = true;
 		}
-		try {
+		try { // 遍历所有属性进行赋值操作
 			for (PropertyValue pv : propertyValues) {
 				// setPropertyValue may throw any BeansException, which won't be caught
 				// here, if there is a critical failure such as no matching field.

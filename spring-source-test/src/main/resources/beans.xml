@@ -4,11 +4,13 @@
 	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 
-	<bean class="com.itnxd.spring.bean.Person" id="person">
+	<bean class="com.itnxd.spring.bean.Person" id="person" autowire="byType">
 		<property name="name" value="小人"/>
 	</bean>
 
 	<bean class="com.itnxd.spring.bean.Cat" id="cat">
 		<property name="name" value="小猫"/>
 	</bean>
+
+	<bean class="com.itnxd.spring.bean.HelloFactory" id="hello"/>
 </beans>

@@ -581,8 +581,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// Check for listener beans and register them.
 				registerListeners();
 
-				// Instantiate all remaining (non-lazy-init) singletons.
-				finishBeanFactoryInitialization(beanFactory); // 1. 对象创建是在BeanFactory初始化之后
+				// Instantiate all remaining (non-lazy-init) singletons. 下一行执行完后，组件都已经创建好了（不包括属性赋值）
+				finishBeanFactoryInitialization(beanFactory); // 1. BeanFactory 创建完成，对象创建是在BeanFactory初始化之后
 
 				// Last step: publish corresponding event.
 				finishRefresh();
@@ -917,7 +917,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
-		beanFactory.preInstantiateSingletons(); // 2. 初始化所有单实例 Bean
+		beanFactory.preInstantiateSingletons(); // 2. 初始化所有费非加载单实例 Bean
 	}
 
 	/**

@@ -34,11 +34,6 @@ public class Person implements ApplicationContextAware, MessageSourceAware {
 	/*@Autowired*/
 	private Cat cat;
 
-	public Person() {
-		System.out.println("Person 对象创建"); // 13. 创建成功
-	}
-
-
 	public ApplicationContext getContext() {
 		return context;
 	}
@@ -55,6 +50,7 @@ public class Person implements ApplicationContextAware, MessageSourceAware {
 		return name;
 	}
 
+	@Autowired
 	public void setCat(Cat cat) {
 		this.cat = cat;
 	}
@@ -75,6 +71,10 @@ public class Person implements ApplicationContextAware, MessageSourceAware {
 		return "Person{" +
 				"name='" + name + '\'' +
 				'}';
+	}
+
+	public Person() {
+		System.out.println("Person 对象创建"); // 13. 创建成功
 	}
 
 	/**

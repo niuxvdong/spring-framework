@@ -125,6 +125,7 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			((ApplicationStartupAware) bean).setApplicationStartup(this.applicationContext.getApplicationStartup());
 		}
 		if (bean instanceof ApplicationContextAware) {
+			// 将 Bean 转换为 Aware 类型（多态），调用 对应的 set 方法进行赋值
 			((ApplicationContextAware) bean).setApplicationContext(this.applicationContext); // 17. 根据 Aware 类型进行set注入
 		}
 	}

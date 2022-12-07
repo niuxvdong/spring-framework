@@ -61,6 +61,12 @@ import org.springframework.util.StringUtils;
  * (which inherit from it). Can alternatively also be used as a nested
  * helper to delegate to.
  *
+ * DefaultListableBeanFactory 会继承 本类 DefaultSingletonBeanRegistry（BeanRegistry）
+ *
+ * DefaultListableBeanFactory 既是 BeanDefinition（图纸） 存储中心也是 Bean（飞机） 存储中心。
+ *
+ * Spring 默认使用 单例Bean注册中心
+ *
  * @author Juergen Hoeller
  * @since 2.0
  * @see #registerSingleton
@@ -74,7 +80,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private static final int SUPPRESSED_EXCEPTIONS_LIMIT = 100;
 
 
-	/** 单实例缓存池，IOC 单例容器 Cache of singleton objects: bean name to bean instance. */
+	/** 单实例缓存池，IOC 单例容器（享元模式） Cache of singleton objects: bean name to bean instance. */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
 	/** Cache of singleton factories: bean name to ObjectFactory. */
@@ -231,7 +237,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
-					singletonObject = singletonFactory.getObject(); // 9. 从对象工厂获取单例对象
+					singletonObject = singletonFactory.getObject(); // 9. 从对象工厂获取单例对象(lambda 表达式调用)
 					newSingleton = true;
 				}
 				catch (IllegalStateException ex) {
