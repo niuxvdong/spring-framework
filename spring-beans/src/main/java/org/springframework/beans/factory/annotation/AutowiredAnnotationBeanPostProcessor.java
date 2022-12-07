@@ -394,7 +394,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 	@Override
 	public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName) {
-		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
+		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs); // 找到自动装配的元数据信息
 		try {
 			metadata.inject(bean, beanName, pvs);
 		}
@@ -450,7 +450,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 					if (metadata != null) {
 						metadata.clear(pvs);
 					}
-					metadata = buildAutowiringMetadata(clazz);
+					metadata = buildAutowiringMetadata(clazz); // 获取元数据 注解信息（方法或属性上标注的注入类型注解）
 					this.injectionMetadataCache.put(cacheKey, metadata);
 				}
 			}
@@ -468,7 +468,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 		do {
 			final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
-
+			// 找属性中标注了 注入类型注解（Value/Inject/Autowired） 的
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
 				if (ann != null) {
@@ -483,6 +483,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 				}
 			});
 
+			// 找方法中标注了 注入类型注解（Value/Inject/Autowired）的
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
@@ -519,7 +520,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 	@Nullable
 	private MergedAnnotation<?> findAutowiredAnnotation(AccessibleObject ao) {
 		MergedAnnotations annotations = MergedAnnotations.from(ao);
-		for (Class<? extends Annotation> type : this.autowiredAnnotationTypes) {
+		for (Class<? extends Annotation> type : this.autowiredAnnotationTypes) { // autowiredAnnotationTypes（三种注解类型：Autowired、Inject、Value）
 			MergedAnnotation<?> annotation = annotations.get(type);
 			if (annotation.isPresent()) {
 				return annotation;

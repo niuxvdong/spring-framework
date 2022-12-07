@@ -114,7 +114,7 @@ public class InjectionMetadata {
 		Collection<InjectedElement> checkedElements = this.checkedElements;
 		Collection<InjectedElement> elementsToIterate =
 				(checkedElements != null ? checkedElements : this.injectedElements);
-		if (!elementsToIterate.isEmpty()) {
+		if (!elementsToIterate.isEmpty()) { // InjectedElement 装饰器模式，包装了标注了注入类型注解的数据（方法或属性上）
 			for (InjectedElement element : elementsToIterate) {
 				element.inject(target, beanName, pvs);
 			}
