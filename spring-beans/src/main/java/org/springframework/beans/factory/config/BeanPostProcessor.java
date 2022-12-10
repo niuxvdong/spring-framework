@@ -47,6 +47,8 @@ import org.springframework.lang.Nullable;
  * {@link org.springframework.core.annotation.Order @Order} annotation is not
  * taken into account for {@code BeanPostProcessor} beans.
  *
+ * 后置增强 Bean，本接口有许多子接口实现，需要弄明白子接口什么时候执行。（关键在于改变 Bean）
+ *
  * @author Juergen Hoeller
  * @author Sam Brannen
  * @since 10.10.2003

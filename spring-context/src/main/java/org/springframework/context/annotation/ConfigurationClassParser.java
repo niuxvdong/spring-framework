@@ -246,7 +246,7 @@ class ConfigurationClassParser {
 		// Recursively process the configuration class and its superclass hierarchy.
 		SourceClass sourceClass = asSourceClass(configClass, filter);
 		do {
-			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
+			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter); // 解析配置类所有注解
 		}
 		while (sourceClass != null);
 
@@ -266,7 +266,7 @@ class ConfigurationClassParser {
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
 
-		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
+		if (configClass.getMetadata().isAnnotated(Component.class.getName())) { // 配置类是否有Component注解
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass, filter);
 		}

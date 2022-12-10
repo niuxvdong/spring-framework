@@ -25,6 +25,9 @@ package org.springframework.beans.factory;
  * init method, for example in an XML bean definition. For a list of all bean
  * lifecycle methods, see the {@link BeanFactory BeanFactory javadocs}.
  *
+ * Bean 初始化完成后，对组件进行设置（关键在于额外处理）
+ *
+ *
  * @author Rod Johnson
  * @author Juergen Hoeller
  * @see DisposableBean
