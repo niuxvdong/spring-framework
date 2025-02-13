@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package org.springframework.beans.factory.support;
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 import org.springframework.util.function.ThrowingBiFunction;
 import org.springframework.util.function.ThrowingSupplier;
@@ -35,6 +36,7 @@ import org.springframework.util.function.ThrowingSupplier;
  * @since 6.0
  * @param <T> the type of instance supplied by this supplier
  * @see RegisteredBean
+ * @see org.springframework.beans.factory.aot.BeanInstanceSupplier
  */
 @FunctionalInterface
 public interface InstanceSupplier<T> extends ThrowingSupplier<T> {
@@ -58,8 +60,7 @@ public interface InstanceSupplier<T> extends ThrowingSupplier<T> {
 	 * another means.
 	 * @return the factory method used to create the instance, or {@code null}
 	 */
-	@Nullable
-	default Method getFactoryMethod() {
+	default @Nullable Method getFactoryMethod() {
 		return null;
 	}
 
@@ -74,19 +75,17 @@ public interface InstanceSupplier<T> extends ThrowingSupplier<T> {
 	 */
 	default <V> InstanceSupplier<V> andThen(
 			ThrowingBiFunction<RegisteredBean, ? super T, ? extends V> after) {
-		Assert.notNull(after, "'after' function must not be null");
-		return new InstanceSupplier<V>() {
 
+		Assert.notNull(after, "'after' function must not be null");
+		return new InstanceSupplier<>() {
 			@Override
 			public V get(RegisteredBean registeredBean) throws Exception {
 				return after.applyWithException(registeredBean, InstanceSupplier.this.get(registeredBean));
 			}
-
 			@Override
-			public Method getFactoryMethod() {
+			public @Nullable Method getFactoryMethod() {
 				return InstanceSupplier.this.getFactoryMethod();
 			}
-
 		};
 	}
 
@@ -115,22 +114,21 @@ public interface InstanceSupplier<T> extends ThrowingSupplier<T> {
 	 */
 	static <T> InstanceSupplier<T> using(@Nullable Method factoryMethod, ThrowingSupplier<T> supplier) {
 		Assert.notNull(supplier, "Supplier must not be null");
-		if (supplier instanceof InstanceSupplier<T> instanceSupplier
-				&& instanceSupplier.getFactoryMethod() == factoryMethod) {
+
+		if (supplier instanceof InstanceSupplier<T> instanceSupplier &&
+				instanceSupplier.getFactoryMethod() == factoryMethod) {
 			return instanceSupplier;
 		}
-		return new InstanceSupplier<T>() {
 
+		return new InstanceSupplier<>() {
 			@Override
 			public T get(RegisteredBean registeredBean) throws Exception {
 				return supplier.getWithException();
 			}
-
 			@Override
-			public Method getFactoryMethod() {
+			public @Nullable Method getFactoryMethod() {
 				return factoryMethod;
 			}
-
 		};
 	}
 

@@ -29,8 +29,8 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionBindingEvent;
 import jakarta.servlet.http.HttpSessionBindingListener;
+import org.jspecify.annotations.Nullable;
 
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -45,7 +45,6 @@ import org.springframework.util.Assert;
  * @author Vedran Pavic
  * @since 1.0.2
  */
-@SuppressWarnings("deprecation")
 public class MockHttpSession implements HttpSession {
 
 	/**
@@ -148,7 +147,7 @@ public class MockHttpSession implements HttpSession {
 	}
 
 	@Override
-	public Object getAttribute(String name) {
+	public @Nullable Object getAttribute(String name) {
 		assertIsValid();
 		Assert.notNull(name, "Attribute name must not be null");
 		return this.attributes.get(name);
@@ -167,11 +166,11 @@ public class MockHttpSession implements HttpSession {
 		if (value != null) {
 			Object oldValue = this.attributes.put(name, value);
 			if (value != oldValue) {
-				if (oldValue instanceof HttpSessionBindingListener) {
-					((HttpSessionBindingListener) oldValue).valueUnbound(new HttpSessionBindingEvent(this, name, oldValue));
+				if (oldValue instanceof HttpSessionBindingListener listener) {
+					listener.valueUnbound(new HttpSessionBindingEvent(this, name, oldValue));
 				}
-				if (value instanceof HttpSessionBindingListener) {
-					((HttpSessionBindingListener) value).valueBound(new HttpSessionBindingEvent(this, name, value));
+				if (value instanceof HttpSessionBindingListener listener) {
+					listener.valueBound(new HttpSessionBindingEvent(this, name, value));
 				}
 			}
 		}
@@ -185,8 +184,8 @@ public class MockHttpSession implements HttpSession {
 		assertIsValid();
 		Assert.notNull(name, "Attribute name must not be null");
 		Object value = this.attributes.remove(name);
-		if (value instanceof HttpSessionBindingListener) {
-			((HttpSessionBindingListener) value).valueUnbound(new HttpSessionBindingEvent(this, name, value));
+		if (value instanceof HttpSessionBindingListener listener) {
+			listener.valueUnbound(new HttpSessionBindingEvent(this, name, value));
 		}
 	}
 
@@ -199,8 +198,8 @@ public class MockHttpSession implements HttpSession {
 			String name = entry.getKey();
 			Object value = entry.getValue();
 			it.remove();
-			if (value instanceof HttpSessionBindingListener) {
-				((HttpSessionBindingListener) value).valueUnbound(new HttpSessionBindingEvent(this, name, value));
+			if (value instanceof HttpSessionBindingListener listener) {
+				listener.valueUnbound(new HttpSessionBindingEvent(this, name, value));
 			}
 		}
 	}
@@ -239,6 +238,12 @@ public class MockHttpSession implements HttpSession {
 		return this.isNew;
 	}
 
+	@Override
+	public Accessor getAccessor() {
+		return sessionConsumer -> sessionConsumer.accept(MockHttpSession.this);
+	}
+
+
 	/**
 	 * Serialize the attributes of this session into an object that can be
 	 * turned into a byte array with standard Java serialization.
@@ -251,14 +256,14 @@ public class MockHttpSession implements HttpSession {
 			String name = entry.getKey();
 			Object value = entry.getValue();
 			it.remove();
-			if (value instanceof Serializable) {
-				state.put(name, (Serializable) value);
+			if (value instanceof Serializable serializable) {
+				state.put(name, serializable);
 			}
 			else {
 				// Not serializable... Servlet containers usually automatically
 				// unbind the attribute in this case.
-				if (value instanceof HttpSessionBindingListener) {
-					((HttpSessionBindingListener) value).valueUnbound(new HttpSessionBindingEvent(this, name, value));
+				if (value instanceof HttpSessionBindingListener listener) {
+					listener.valueUnbound(new HttpSessionBindingEvent(this, name, value));
 				}
 			}
 		}

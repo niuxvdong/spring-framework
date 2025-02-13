@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ import static org.mockito.Mockito.mock;
  * @author Rick Evans
  * @author Juergen Hoeller
  */
-public class ResourceScriptSourceTests {
+class ResourceScriptSourceTests {
 
 	@Test
-	public void doesNotPropagateFatalExceptionOnResourceThatCannotBeResolvedToAFile() throws Exception {
-		Resource resource = mock(Resource.class);
+	void doesNotPropagateFatalExceptionOnResourceThatCannotBeResolvedToAFile() throws Exception {
+		Resource resource = mock();
 		given(resource.lastModified()).willThrow(new IOException());
 
 		ResourceScriptSource scriptSource = new ResourceScriptSource(resource);
@@ -45,15 +45,15 @@ public class ResourceScriptSourceTests {
 	}
 
 	@Test
-	public void beginsInModifiedState() throws Exception {
-		Resource resource = mock(Resource.class);
+	void beginsInModifiedState() {
+		Resource resource = mock();
 		ResourceScriptSource scriptSource = new ResourceScriptSource(resource);
 		assertThat(scriptSource.isModified()).isTrue();
 	}
 
 	@Test
-	public void lastModifiedWorksWithResourceThatDoesNotSupportFileBasedReading() throws Exception {
-		Resource resource = mock(Resource.class);
+	void lastModifiedWorksWithResourceThatDoesNotSupportFileBasedReading() throws Exception {
+		Resource resource = mock();
 		// underlying File is asked for so that the last modified time can be checked...
 		// And then mock the file changing; i.e. the File says it has been modified
 		given(resource.lastModified()).willReturn(100L, 100L, 200L);
@@ -71,7 +71,7 @@ public class ResourceScriptSourceTests {
 	}
 
 	@Test
-	public void lastModifiedWorksWithResourceThatDoesNotSupportFileBasedAccessAtAll() throws Exception {
+	void lastModifiedWorksWithResourceThatDoesNotSupportFileBasedAccessAtAll() throws Exception {
 		Resource resource = new ByteArrayResource(new byte[0]);
 		ResourceScriptSource scriptSource = new ResourceScriptSource(resource);
 		assertThat(scriptSource.isModified()).as("ResourceScriptSource must start off in the 'isModified' state (it obviously isn't).").isTrue();

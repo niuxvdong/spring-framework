@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package org.springframework.aot.generate;
 
-import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
@@ -149,8 +148,8 @@ class GeneratedClassesTests {
 				"one", TestComponent.class, emptyTypeCustomizer);
 		GeneratedClass generatedClass2 = this.generatedClasses.getOrAddForFeatureComponent(
 				"one", TestComponent.class, emptyTypeCustomizer);
-		GeneratedClass generatedClass3 = prefixed.getOrAddForFeatureComponent
-				("one", TestComponent.class, emptyTypeCustomizer);
+		GeneratedClass generatedClass3 = prefixed.getOrAddForFeatureComponent(
+				"one", TestComponent.class, emptyTypeCustomizer);
 		GeneratedClass generatedClass4 = prefixed.getOrAddForFeatureComponent(
 				"one", TestComponent.class, emptyTypeCustomizer);
 		assertThat(generatedClass1).isSameAs(generatedClass2).isNotSameAs(generatedClass3);
@@ -158,9 +157,8 @@ class GeneratedClassesTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
-	void writeToInvokeTypeSpecCustomizer() throws IOException {
-		Consumer<TypeSpec.Builder> typeSpecCustomizer = mock(Consumer.class);
+	void writeToInvokeTypeSpecCustomizer() {
+		Consumer<TypeSpec.Builder> typeSpecCustomizer = mock();
 		this.generatedClasses.addForFeatureComponent("one", TestComponent.class, typeSpecCustomizer);
 		verifyNoInteractions(typeSpecCustomizer);
 		InMemoryGeneratedFiles generatedFiles = new InMemoryGeneratedFiles();

@@ -27,9 +27,9 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.Mergeable;
-import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -78,11 +78,9 @@ public final class MockMvc {
 
 	private final ServletContext servletContext;
 
-	@Nullable
-	private RequestBuilder defaultRequestBuilder;
+	private @Nullable RequestBuilder defaultRequestBuilder;
 
-	@Nullable
-	private Charset defaultResponseCharacterEncoding;
+	private @Nullable Charset defaultResponseCharacterEncoding;
 
 	private List<ResultMatcher> defaultResultMatchers = new ArrayList<>();
 
@@ -165,8 +163,8 @@ public final class MockMvc {
 	 * @see org.springframework.test.web.servlet.result.MockMvcResultMatchers
 	 */
 	public ResultActions perform(RequestBuilder requestBuilder) throws Exception {
-		if (this.defaultRequestBuilder != null && requestBuilder instanceof Mergeable) {
-			requestBuilder = (RequestBuilder) ((Mergeable) requestBuilder).merge(this.defaultRequestBuilder);
+		if (this.defaultRequestBuilder != null && requestBuilder instanceof Mergeable mergeable) {
+			requestBuilder = (RequestBuilder) mergeable.merge(this.defaultRequestBuilder);
 		}
 
 		MockHttpServletRequest request = requestBuilder.buildRequest(this.servletContext);
@@ -187,8 +185,8 @@ public final class MockMvc {
 			mockResponse.setDefaultCharacterEncoding(this.defaultResponseCharacterEncoding.name());
 		}
 
-		if (requestBuilder instanceof SmartRequestBuilder) {
-			request = ((SmartRequestBuilder) requestBuilder).postProcessRequest(request);
+		if (requestBuilder instanceof SmartRequestBuilder smartRequestBuilder) {
+			request = smartRequestBuilder.postProcessRequest(request);
 		}
 
 		MvcResult mvcResult = new DefaultMvcResult(request, mockResponse);
@@ -227,8 +225,8 @@ public final class MockMvc {
 	}
 
 	private MockHttpServletResponse unwrapResponseIfNecessary(ServletResponse servletResponse) {
-		while (servletResponse instanceof HttpServletResponseWrapper) {
-			servletResponse = ((HttpServletResponseWrapper) servletResponse).getResponse();
+		while (servletResponse instanceof HttpServletResponseWrapper wrapper) {
+			servletResponse = wrapper.getResponse();
 		}
 		Assert.isInstanceOf(MockHttpServletResponse.class, servletResponse);
 		return (MockHttpServletResponse) servletResponse;

@@ -57,7 +57,7 @@ public class MethodProxy {
 		proxy.createInfo = new CreateInfo(c1, c2);
 
 		// SPRING PATCH BEGIN
-		if (!c1.isInterface() && c1 != Object.class && !Factory.class.isAssignableFrom(c2)) {
+		if (c1 != Object.class && c1.isAssignableFrom(c2.getSuperclass()) && !Factory.class.isAssignableFrom(c2)) {
 			// Try early initialization for overridden methods on specifically purposed subclasses
 			try {
 				proxy.init();
@@ -234,8 +234,9 @@ public class MethodProxy {
 			throw ex.getTargetException();
 		}
 		catch (IllegalArgumentException ex) {
-			if (fastClassInfo.i1 < 0)
+			if (fastClassInfo.i1 < 0) {
 				throw new IllegalArgumentException("Protected method: " + sig1);
+			}
 			throw ex;
 		}
 	}

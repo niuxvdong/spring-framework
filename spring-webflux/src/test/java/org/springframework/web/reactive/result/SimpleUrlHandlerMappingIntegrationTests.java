@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,9 +56,7 @@ class SimpleUrlHandlerMappingIntegrationTests extends AbstractHttpHandlerIntegra
 
 	@Override
 	protected HttpHandler createHttpHandler() {
-		AnnotationConfigApplicationContext wac = new AnnotationConfigApplicationContext();
-		wac.register(WebConfig.class);
-		wac.refresh();
+		AnnotationConfigApplicationContext wac = new AnnotationConfigApplicationContext(WebConfig.class);
 
 		return WebHttpHandlerBuilder.webHandler(new DispatcherHandler(wac))
 				.exceptionHandler(new ResponseStatusExceptionHandler())
@@ -70,33 +68,33 @@ class SimpleUrlHandlerMappingIntegrationTests extends AbstractHttpHandlerIntegra
 	void requestToFooHandler(HttpServer httpServer) throws Exception {
 		startServer(httpServer);
 
-		URI url = new URI("http://localhost:" + this.port + "/foo");
+		URI url = URI.create("http://localhost:" + this.port + "/foo");
 		RequestEntity<Void> request = RequestEntity.get(url).build();
 		@SuppressWarnings("resource")
 		ResponseEntity<byte[]> response = new RestTemplate().exchange(request, byte[].class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(response.getBody()).isEqualTo("foo".getBytes("UTF-8"));
+		assertThat(response.getBody()).isEqualTo("foo".getBytes(StandardCharsets.UTF_8));
 	}
 
 	@ParameterizedHttpServerTest
 	public void requestToBarHandler(HttpServer httpServer) throws Exception {
 		startServer(httpServer);
 
-		URI url = new URI("http://localhost:" + this.port + "/bar");
+		URI url = URI.create("http://localhost:" + this.port + "/bar");
 		RequestEntity<Void> request = RequestEntity.get(url).build();
 		@SuppressWarnings("resource")
 		ResponseEntity<byte[]> response = new RestTemplate().exchange(request, byte[].class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(response.getBody()).isEqualTo("bar".getBytes("UTF-8"));
+		assertThat(response.getBody()).isEqualTo("bar".getBytes(StandardCharsets.UTF_8));
 	}
 
 	@ParameterizedHttpServerTest
 	void requestToHeaderSettingHandler(HttpServer httpServer) throws Exception {
 		startServer(httpServer);
 
-		URI url = new URI("http://localhost:" + this.port + "/header");
+		URI url = URI.create("http://localhost:" + this.port + "/header");
 		RequestEntity<Void> request = RequestEntity.get(url).build();
 		@SuppressWarnings("resource")
 		ResponseEntity<byte[]> response = new RestTemplate().exchange(request, byte[].class);
@@ -110,7 +108,7 @@ class SimpleUrlHandlerMappingIntegrationTests extends AbstractHttpHandlerIntegra
 	void handlerNotFound(HttpServer httpServer) throws Exception {
 		startServer(httpServer);
 
-		URI url = new URI("http://localhost:" + this.port + "/oops");
+		URI url = URI.create("http://localhost:" + this.port + "/oops");
 		RequestEntity<Void> request = RequestEntity.get(url).build();
 		try {
 			new RestTemplate().exchange(request, byte[].class);

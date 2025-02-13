@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import org.springframework.util.ClassUtils;
  * on the JDK and CGLIB proxy facilities and their core conventions.
  *
  * @author Juergen Hoeller
+ * @author Sebastien Deleuze
  * @since 6.0.3
  * @see org.springframework.aot.hint.ProxyHints
  * @see org.springframework.aot.hint.ReflectionHints
@@ -43,10 +44,11 @@ public abstract class ClassHintUtils {
 	private static final Consumer<TypeHint.Builder> asClassBasedProxy = hint ->
 			hint.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
 					MemberCategory.INVOKE_DECLARED_METHODS,
-					MemberCategory.DECLARED_FIELDS);
+					MemberCategory.ACCESS_DECLARED_FIELDS);
 
 	private static final Consumer<TypeHint.Builder> asProxiedUserClass = hint ->
-			hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS);
+			hint.withMembers(MemberCategory.INVOKE_PUBLIC_METHODS,
+					MemberCategory.INVOKE_DECLARED_METHODS);
 
 
 	/**

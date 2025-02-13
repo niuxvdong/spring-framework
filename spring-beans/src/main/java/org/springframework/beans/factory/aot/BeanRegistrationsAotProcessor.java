@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package org.springframework.beans.factory.aot;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.aot.BeanRegistrationsAotContribution.Registration;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.RegisteredBean;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link BeanFactoryInitializationAotProcessor} that contributes code to
@@ -31,23 +32,23 @@ import org.springframework.lang.Nullable;
  * @author Phillip Webb
  * @author Sebastien Deleuze
  * @author Stephane Nicoll
+ * @author Brian Clozel
  * @since 6.0
  */
 class BeanRegistrationsAotProcessor implements BeanFactoryInitializationAotProcessor {
 
 	@Override
-	@Nullable
-	public BeanRegistrationsAotContribution processAheadOfTime(ConfigurableListableBeanFactory beanFactory) {
+	public @Nullable BeanRegistrationsAotContribution processAheadOfTime(ConfigurableListableBeanFactory beanFactory) {
 		BeanDefinitionMethodGeneratorFactory beanDefinitionMethodGeneratorFactory =
 				new BeanDefinitionMethodGeneratorFactory(beanFactory);
-		Map<String, Registration> registrations = new LinkedHashMap<>();
+		List<Registration> registrations = new ArrayList<>();
 
 		for (String beanName : beanFactory.getBeanDefinitionNames()) {
 			RegisteredBean registeredBean = RegisteredBean.of(beanFactory, beanName);
 			BeanDefinitionMethodGenerator beanDefinitionMethodGenerator =
 					beanDefinitionMethodGeneratorFactory.getBeanDefinitionMethodGenerator(registeredBean);
 			if (beanDefinitionMethodGenerator != null) {
-				registrations.put(beanName, new Registration(beanDefinitionMethodGenerator,
+				registrations.add(new Registration(registeredBean, beanDefinitionMethodGenerator,
 						beanFactory.getAliases(beanName)));
 			}
 		}

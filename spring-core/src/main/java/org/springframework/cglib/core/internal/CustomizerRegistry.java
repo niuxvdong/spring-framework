@@ -12,7 +12,7 @@ import org.springframework.cglib.core.KeyFactoryCustomizer;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class CustomizerRegistry {
     private final Class[] customizerTypes;
-    private Map<Class, List<KeyFactoryCustomizer>> customizers = new HashMap<Class, List<KeyFactoryCustomizer>>();
+    private Map<Class, List<KeyFactoryCustomizer>> customizers = new HashMap<>();
 
     public CustomizerRegistry(Class[] customizerTypes) {
         this.customizerTypes = customizerTypes;
@@ -22,10 +22,7 @@ public class CustomizerRegistry {
         Class<? extends KeyFactoryCustomizer> klass = customizer.getClass();
         for (Class type : customizerTypes) {
             if (type.isAssignableFrom(klass)) {
-                List<KeyFactoryCustomizer> list = customizers.get(type);
-                if (list == null) {
-                    customizers.put(type, list = new ArrayList<KeyFactoryCustomizer>());
-                }
+                List<KeyFactoryCustomizer> list = customizers.computeIfAbsent(type, k -> new ArrayList<>());
                 list.add(customizer);
             }
         }

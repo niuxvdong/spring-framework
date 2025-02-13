@@ -34,8 +34,7 @@ public class CollectionUtils {
 
     public static Map bucket(Collection c, Transformer t) {
         Map buckets = new HashMap();
-        for (Iterator it = c.iterator(); it.hasNext();) {
-            Object value = it.next();
+        for (Object value : c) {
             Object key = t.transform(value);
             List bucket = (List)buckets.get(key);
             if (bucket == null) {
@@ -47,19 +46,13 @@ public class CollectionUtils {
     }
 
     public static void reverse(Map source, Map target) {
-        for (Iterator it = source.keySet().iterator(); it.hasNext();) {
-            Object key = it.next();
+        for (Object key : source.keySet()) {
             target.put(source.get(key), key);
         }
     }
 
     public static Collection filter(Collection c, Predicate p) {
-        Iterator it = c.iterator();
-        while (it.hasNext()) {
-            if (!p.evaluate(it.next())) {
-                it.remove();
-            }
-        }
+        c.removeIf(o -> !p.evaluate(o));
         return c;
     }
 

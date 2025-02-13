@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,19 @@
 
 package org.springframework.http;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 /**
- * Representation for an RFC 7807 problem detail. Includes spec-defined
+ * Representation for an RFC 9457 problem detail. Includes spec-defined
  * properties, and a {@link #getProperties() properties} map for additional,
  * non-standard properties.
  *
@@ -36,37 +39,37 @@ import org.springframework.util.ObjectUtils;
  *
  * <p>For an extended response, an application can also create a subclass with
  * additional properties. Subclasses can use the protected copy constructor to
- * re-create an existing {@code ProblemDetail} instance as the subclass, e.g.
+ * re-create an existing {@code ProblemDetail} instance as the subclass, for example,
  * from an {@code @ControllerAdvice} such as
- * {@link org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler}.
+ * {@link org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler} or
+ * {@link org.springframework.web.reactive.result.method.annotation.ResponseEntityExceptionHandler}.
  *
  * @author Rossen Stoyanchev
  * @author Juergen Hoeller
  * @since 6.0
- * @see <a href="https://datatracker.ietf.org/doc/html/rfc7807">RFC 7807</a>
+ * @see <a href="https://datatracker.ietf.org/doc/html/rfc9457">RFC 9457</a>
  * @see org.springframework.web.ErrorResponse
  * @see org.springframework.web.ErrorResponseException
  */
-public class ProblemDetail {
+public class ProblemDetail implements Serializable {
+
+	private static final long serialVersionUID = 3307761915842206538L;
 
 	private static final URI BLANK_TYPE = URI.create("about:blank");
 
 
 	private URI type = BLANK_TYPE;
 
-	@Nullable
-	private String title;
+	private @Nullable String title;
 
 	private int status;
 
-	@Nullable
-	private String detail;
+	private @Nullable String detail;
 
-	@Nullable
-	private URI instance;
+	private @Nullable URI instance;
 
-	@Nullable
-	private Map<String, Object> properties;
+	@SuppressWarnings("serial")
+	private @Nullable Map<String, Object> properties;
 
 
 	/**
@@ -129,8 +132,7 @@ public class ProblemDetail {
 	/**
 	 * Return the configured {@link #setTitle(String) problem title}.
 	 */
-	@Nullable
-	public String getTitle() {
+	public @Nullable String getTitle() {
 		if (this.title == null) {
 			HttpStatus httpStatus = HttpStatus.resolve(this.status);
 			if (httpStatus != null) {
@@ -176,8 +178,7 @@ public class ProblemDetail {
 	/**
 	 * Return the configured {@link #setDetail(String) problem detail}.
 	 */
-	@Nullable
-	public String getDetail() {
+	public @Nullable String getDetail() {
 		return this.detail;
 	}
 
@@ -194,8 +195,7 @@ public class ProblemDetail {
 	/**
 	 * Return the configured {@link #setInstance(URI) problem instance}.
 	 */
-	@Nullable
-	public URI getInstance() {
+	public @Nullable URI getInstance() {
 		return this.instance;
 	}
 
@@ -206,12 +206,26 @@ public class ProblemDetail {
 	 * are rendered as top level key-value pairs in the output JSON. Otherwise,
 	 * they are rendered as a {@code "properties"} sub-map.
 	 * @param name the property name
-	 * @param value the property value
+	 * @param value the property value, possibly {@code null} if the intent is
+	 * to include a property with its value set to "null"
 	 * @see org.springframework.http.converter.json.ProblemDetailJacksonMixin
 	 */
-	public void setProperty(String name, Object value) {
+	public void setProperty(String name, @Nullable Object value) {
 		this.properties = (this.properties != null ? this.properties : new LinkedHashMap<>());
 		this.properties.put(name, value);
+	}
+
+	/**
+	 * Setter for the {@link #getProperties() properties map}.
+	 * <p>By default, this is not set.
+	 * <p>When Jackson JSON is present on the classpath, any properties set here
+	 * are rendered as top level key-value pairs in the output JSON. Otherwise,
+	 * they are rendered as a {@code "properties"} sub-map.
+	 * @param properties the properties map
+	 * @since 6.0.14
+	 */
+	public void setProperties(@Nullable Map<String, Object> properties) {
+		this.properties = properties;
 	}
 
 	/**
@@ -223,37 +237,26 @@ public class ProblemDetail {
 	 * Otherwise, they are rendered as a {@code "properties"} sub-map.
 	 * @see org.springframework.http.converter.json.ProblemDetailJacksonMixin
 	 */
-	@Nullable
-	public Map<String, Object> getProperties() {
+	public @Nullable Map<String, Object> getProperties() {
 		return this.properties;
 	}
 
 
 	@Override
 	public boolean equals(@Nullable Object other) {
-		if (this == other) {
-			return true;
-		}
-		if (!(other instanceof ProblemDetail otherDetail)) {
-			return false;
-		}
-		return (this.type.equals(otherDetail.type) &&
-				ObjectUtils.nullSafeEquals(this.title, otherDetail.title) &&
-				this.status == otherDetail.status &&
-				ObjectUtils.nullSafeEquals(this.detail, otherDetail.detail) &&
-				ObjectUtils.nullSafeEquals(this.instance, otherDetail.instance) &&
-				ObjectUtils.nullSafeEquals(this.properties, otherDetail.properties));
+		return (this == other || (other instanceof ProblemDetail that &&
+				getType().equals(that.getType()) &&
+				ObjectUtils.nullSafeEquals(getTitle(), that.getTitle()) &&
+				this.status == that.status &&
+				ObjectUtils.nullSafeEquals(this.detail, that.detail) &&
+				ObjectUtils.nullSafeEquals(this.instance, that.instance) &&
+				ObjectUtils.nullSafeEquals(this.properties, that.properties)));
 	}
 
 	@Override
 	public int hashCode() {
-		int result = this.type.hashCode();
-		result = 31 * result + ObjectUtils.nullSafeHashCode(this.title);
-		result = 31 * result + this.status;
-		result = 31 * result + ObjectUtils.nullSafeHashCode(this.detail);
-		result = 31 * result + ObjectUtils.nullSafeHashCode(this.instance);
-		result = 31 * result + ObjectUtils.nullSafeHashCode(this.properties);
-		return result;
+		return Objects.hash(this.type, getTitle(), this.status, this.detail,
+				this.instance, this.properties);
 	}
 
 	@Override
@@ -295,7 +298,7 @@ public class ProblemDetail {
 	/**
 	 * Create a {@code ProblemDetail} instance with the given status and detail.
 	 */
-	public static ProblemDetail forStatusAndDetail(HttpStatusCode status, String detail) {
+	public static ProblemDetail forStatusAndDetail(HttpStatusCode status, @Nullable String detail) {
 		Assert.notNull(status, "HttpStatusCode is required");
 		ProblemDetail problemDetail = forStatus(status.value());
 		problemDetail.setDetail(detail);

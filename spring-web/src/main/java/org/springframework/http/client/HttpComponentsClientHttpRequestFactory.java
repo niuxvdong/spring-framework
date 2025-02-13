@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,10 @@ package org.springframework.http.client;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -41,11 +40,10 @@ import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.http.protocol.HttpContext;
-import org.apache.hc.core5.util.Timeout;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.http.HttpMethod;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
@@ -66,19 +64,15 @@ import org.springframework.util.Assert;
  */
 public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequestFactory, DisposableBean {
 
-	private static final Log logger = LogFactory.getLog(HttpComponentsClientHttpRequestFactory.class);
-
-
 	private HttpClient httpClient;
 
-	private boolean bufferRequestBody = true;
+	private @Nullable BiFunction<HttpMethod, URI, HttpContext> httpContextFactory;
 
-	@Nullable
-	private BiFunction<HttpMethod, URI, HttpContext> httpContextFactory;
+	private long connectTimeout = -1;
 
-	private int connectTimeout = -1;
+	private long connectionRequestTimeout = -1;
 
-	private int connectionRequestTimeout = -1;
+	private long readTimeout = -1;
 
 	/**
 	 * Create a new instance of the {@code HttpComponentsClientHttpRequestFactory}
@@ -134,12 +128,33 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	}
 
 	/**
+	 * Set the connection timeout for the underlying {@link RequestConfig}.
+	 * A timeout value of 0 specifies an infinite timeout.
+	 * <p>Additional properties can be configured by specifying a
+	 * {@link RequestConfig} instance on a custom {@link HttpClient}.
+	 * <p>This options does not affect connection timeouts for SSL
+	 * handshakes or CONNECT requests; for that, it is required to
+	 * use the {@link SocketConfig} on the
+	 * {@link HttpClient} itself.
+	 * @param connectTimeout the timeout as a {@code Duration}.
+	 * @since 6.1
+	 * @see RequestConfig#getConnectTimeout()
+	 * @see SocketConfig#getSoTimeout
+	 */
+	public void setConnectTimeout(Duration connectTimeout) {
+		Assert.notNull(connectTimeout, "ConnectTimeout must not be null");
+		Assert.isTrue(!connectTimeout.isNegative(), "Timeout must be a non-negative value");
+		this.connectTimeout = connectTimeout.toMillis();
+	}
+
+	/**
 	 * Set the timeout in milliseconds used when requesting a connection
 	 * from the connection manager using the underlying {@link RequestConfig}.
 	 * A timeout value of 0 specifies an infinite timeout.
 	 * <p>Additional properties can be configured by specifying a
 	 * {@link RequestConfig} instance on a custom {@link HttpClient}.
-	 * @param connectionRequestTimeout the timeout value to request a connection in milliseconds
+	 * @param connectionRequestTimeout the timeout value to request a connection
+	 * in milliseconds
 	 * @see RequestConfig#getConnectionRequestTimeout()
 	 */
 	public void setConnectionRequestTimeout(int connectionRequestTimeout) {
@@ -148,28 +163,49 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	}
 
 	/**
-	 * As of version 6.0, setting this property has no effect.
-	 * <p>To change the socket read timeout, use {@link SocketConfig.Builder#setSoTimeout(Timeout)},
-	 * supply the resulting {@link SocketConfig} to
-	 * {@link org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder#setDefaultSocketConfig(SocketConfig)},
-	 * use the resulting connection manager for
-	 * {@link org.apache.hc.client5.http.impl.classic.HttpClientBuilder#setConnectionManager(HttpClientConnectionManager)},
-	 * and supply the built {@link HttpClient} to {@link #HttpComponentsClientHttpRequestFactory(HttpClient)}.
-	 * @deprecated as of 6.0, in favor of {@link SocketConfig.Builder#setSoTimeout(Timeout)}, see above.
+	 * Set the timeout in milliseconds used when requesting a connection
+	 * from the connection manager using the underlying {@link RequestConfig}.
+	 * A timeout value of 0 specifies an infinite timeout.
+	 * <p>Additional properties can be configured by specifying a
+	 * {@link RequestConfig} instance on a custom {@link HttpClient}.
+	 * @param connectionRequestTimeout the timeout value to request a connection
+	 * as a {@code Duration}.
+	 * @since 6.1
+	 * @see RequestConfig#getConnectionRequestTimeout()
 	 */
-	@Deprecated(since = "6.0", forRemoval = true)
-	public void setReadTimeout(int timeout) {
-		logger.warn("HttpComponentsClientHttpRequestFactory.setReadTimeout has no effect");
+	public void setConnectionRequestTimeout(Duration connectionRequestTimeout) {
+		Assert.notNull(connectionRequestTimeout, "ConnectionRequestTimeout must not be null");
+		Assert.isTrue(!connectionRequestTimeout.isNegative(), "Timeout must be a non-negative value");
+		this.connectionRequestTimeout = connectionRequestTimeout.toMillis();
 	}
 
 	/**
-	 * Indicates whether this request factory should buffer the request body internally.
-	 * <p>Default is {@code true}. When sending large amounts of data via POST or PUT, it is
-	 * recommended to change this property to {@code false}, so as not to run out of memory.
-	 * @since 4.0
+	 * Set the response timeout for the underlying {@link RequestConfig}.
+	 * A timeout value of 0 specifies an infinite timeout.
+	 * <p>Additional properties can be configured by specifying a
+	 * {@link RequestConfig} instance on a custom {@link HttpClient}.
+	 * @param readTimeout the timeout value in milliseconds
+	 * @since 6.2
+	 * @see RequestConfig#getResponseTimeout()
 	 */
-	public void setBufferRequestBody(boolean bufferRequestBody) {
-		this.bufferRequestBody = bufferRequestBody;
+	public void setReadTimeout(int readTimeout) {
+		Assert.isTrue(readTimeout >= 0, "Timeout must be a non-negative value");
+		this.readTimeout = readTimeout;
+	}
+
+	/**
+	 * Set the response timeout for the underlying {@link RequestConfig}.
+	 * A timeout value of 0 specifies an infinite timeout.
+	 * <p>Additional properties can be configured by specifying a
+	 * {@link RequestConfig} instance on a custom {@link HttpClient}.
+	 * @param readTimeout the timeout as a {@code Duration}.
+	 * @since 6.2
+	 * @see RequestConfig#getResponseTimeout()
+	 */
+	public void setReadTimeout(Duration readTimeout) {
+		Assert.notNull(readTimeout, "ReadTimeout must not be null");
+		Assert.isTrue(!readTimeout.isNegative(), "Timeout must be a non-negative value");
+		this.readTimeout = readTimeout.toMillis();
 	}
 
 	/**
@@ -186,7 +222,9 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 		this.httpContextFactory = httpContextFactory;
 	}
 
+
 	@Override
+	@SuppressWarnings("deprecation")  // HttpClientContext.REQUEST_CONFIG
 	public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
 		HttpClient client = getHttpClient();
 
@@ -198,9 +236,10 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 		}
 
 		// Request configuration not set in the context
-		if (context.getAttribute(HttpClientContext.REQUEST_CONFIG) == null) {
-			// Use request configuration given by the user, when available
+		if (!(context instanceof HttpClientContext clientContext && clientContext.getRequestConfig() != null) &&
+				context.getAttribute(HttpClientContext.REQUEST_CONFIG) == null) {
 			RequestConfig config = null;
+			// Use request configuration given by the user, when available
 			if (httpRequest instanceof Configurable configurable) {
 				config = configurable.getConfig();
 			}
@@ -208,16 +247,13 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 				config = createRequestConfig(client);
 			}
 			if (config != null) {
+				if (context instanceof HttpClientContext clientContext) {
+					clientContext.setRequestConfig(config);
+				}
 				context.setAttribute(HttpClientContext.REQUEST_CONFIG, config);
 			}
 		}
-
-		if (this.bufferRequestBody) {
-			return new HttpComponentsClientHttpRequest(client, httpRequest, context);
-		}
-		else {
-			return new HttpComponentsStreamingClientHttpRequest(client, httpRequest, context);
-		}
+		return new HttpComponentsClientHttpRequest(client, httpRequest, context);
 	}
 
 
@@ -232,8 +268,7 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	 * @since 4.2
 	 * @see #mergeRequestConfig(RequestConfig)
 	 */
-	@Nullable
-	protected RequestConfig createRequestConfig(Object client) {
+	protected @Nullable RequestConfig createRequestConfig(Object client) {
 		if (client instanceof Configurable configurableClient) {
 			RequestConfig clientRequestConfig = configurableClient.getConfig();
 			return mergeRequestConfig(clientRequestConfig);
@@ -250,7 +285,7 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	 */
 	@SuppressWarnings("deprecation")  // setConnectTimeout
 	protected RequestConfig mergeRequestConfig(RequestConfig clientConfig) {
-		if (this.connectTimeout == -1 && this.connectionRequestTimeout == -1) {  // nothing to merge
+		if (this.connectTimeout == -1 && this.connectionRequestTimeout == -1 && this.readTimeout == -1) {  // nothing to merge
 			return clientConfig;
 		}
 
@@ -260,6 +295,9 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 		}
 		if (this.connectionRequestTimeout >= 0) {
 			builder.setConnectionRequestTimeout(this.connectionRequestTimeout, TimeUnit.MILLISECONDS);
+		}
+		if (this.readTimeout >= 0) {
+			builder.setResponseTimeout(this.readTimeout, TimeUnit.MILLISECONDS);
 		}
 		return builder.build();
 	}
@@ -299,8 +337,8 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	}
 
 	/**
-	 * Template method that allows for manipulating the {@link ClassicHttpRequest} before it is
-	 * returned as part of a {@link HttpComponentsClientHttpRequest}.
+	 * Template method that allows for manipulating the {@link ClassicHttpRequest}
+	 * before it is returned as part of a {@link HttpComponentsClientHttpRequest}.
 	 * <p>The default implementation is empty.
 	 * @param request the request to process
 	 */
@@ -314,15 +352,13 @@ public class HttpComponentsClientHttpRequestFactory implements ClientHttpRequest
 	 * @param uri the URI
 	 * @return the http context
 	 */
-	@Nullable
-	protected HttpContext createHttpContext(HttpMethod httpMethod, URI uri) {
+	protected @Nullable HttpContext createHttpContext(HttpMethod httpMethod, URI uri) {
 		return (this.httpContextFactory != null ? this.httpContextFactory.apply(httpMethod, uri) : null);
 	}
 
 
 	/**
-	 * Shutdown hook that closes the underlying
-	 * {@link HttpClientConnectionManager ClientConnectionManager}'s
+	 * Shutdown hook that closes the underlying {@link HttpClientConnectionManager}'s
 	 * connection pool, if any.
 	 */
 	@Override

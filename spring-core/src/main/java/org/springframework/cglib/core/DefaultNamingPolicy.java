@@ -32,7 +32,7 @@ public class DefaultNamingPolicy implements NamingPolicy {
     /**
      * This allows to test collisions of {@code key.hashCode()}.
      */
-    private final static boolean STRESS_HASH_CODE = Boolean.getBoolean("org.springframework.cglib.test.stressHashCodes");
+    private static final boolean STRESS_HASH_CODE = Boolean.getBoolean("org.springframework.cglib.test.stressHashCodes");
 
     @Override
     public String getClassName(String prefix, String source, Object key, Predicate names) {
@@ -48,8 +48,9 @@ public class DefaultNamingPolicy implements NamingPolicy {
             Integer.toHexString(STRESS_HASH_CODE ? 0 : key.hashCode());
         String attempt = base;
         int index = 2;
-        while (names.evaluate(attempt))
-            attempt = base + "_" + index++;
+        while (names.evaluate(attempt)) {
+			attempt = base + "_" + index++;
+		}
         return attempt;
     }
 

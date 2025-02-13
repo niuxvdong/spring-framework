@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package org.springframework.jms.annotation;
 import java.lang.reflect.Method;
 
 import jakarta.jms.JMSException;
-import jakarta.jms.Session;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.ApplicationContext;
@@ -31,7 +31,6 @@ import org.springframework.jms.config.MethodJmsListenerEndpoint;
 import org.springframework.jms.config.SimpleJmsListenerEndpoint;
 import org.springframework.jms.listener.SimpleMessageListenerContainer;
 import org.springframework.jms.listener.adapter.MessagingMessageListenerAdapter;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
@@ -66,7 +65,7 @@ abstract class AbstractJmsAnnotationDrivenTests {
 	abstract void defaultContainerFactory();
 
 	@Test
-	abstract void jmsHandlerMethodFactoryConfiguration() throws JMSException;
+	abstract void jmsHandlerMethodFactoryConfiguration();
 
 	@Test
 	abstract void jmsListenerIsRepeatable();
@@ -129,8 +128,9 @@ abstract class AbstractJmsAnnotationDrivenTests {
 
 		JmsListenerEndpointRegistry customRegistry =
 				context.getBean("customRegistry", JmsListenerEndpointRegistry.class);
-		assertThat(customRegistry.getListenerContainerIds().size()).as("Wrong number of containers in the registry").isEqualTo(2);
-		assertThat(customRegistry.getListenerContainers().size()).as("Wrong number of containers in the registry").isEqualTo(2);
+		assertThat(customRegistry.getListenerContainerIds()).as("Wrong number of containers in the registry")
+				.hasSize(2);
+		assertThat(customRegistry.getListenerContainers()).as("Wrong number of containers in the registry").hasSize(2);
 		assertThat(customRegistry.getListenerContainer("listenerId")).as("Container with custom id on the annotation should be found").isNotNull();
 		assertThat(customRegistry.getListenerContainer("myCustomEndpointId")).as("Container created with custom id should be found").isNotNull();
 	}
@@ -172,7 +172,7 @@ abstract class AbstractJmsAnnotationDrivenTests {
 		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
 		endpoint.setupListenerContainer(container);
 		MessagingMessageListenerAdapter listener = (MessagingMessageListenerAdapter) container.getMessageListener();
-		listener.onMessage(new StubTextMessage("failValidation"), mock(Session.class));
+		listener.onMessage(new StubTextMessage("failValidation"), mock());
 	}
 
 	/**

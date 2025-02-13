@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,23 +28,23 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * {@code @ContextConfiguration} defines class-level metadata that is used to determine
- * how to load and configure an {@link org.springframework.context.ApplicationContext
- * ApplicationContext} for integration tests.
+ * {@code @ContextConfiguration} is an annotation that can be applied to a test
+ * class to define metadata that is used to determine how to load and configure
+ * an {@link org.springframework.context.ApplicationContext ApplicationContext}
+ * for integration tests.
  *
  * <h3>Supported Resource Types</h3>
  *
- * <p>Prior to Spring 3.1, only path-based resource locations (typically XML configuration
- * files) were supported. As of Spring 3.1, {@linkplain #loader context loaders} may
- * choose to support <em>either</em> path-based <em>or</em> class-based resources. As of
- * Spring 4.0.4, {@linkplain #loader context loaders} may choose to support path-based
- * <em>and</em> class-based resources simultaneously. Consequently
+ * <p>{@linkplain #loader Context loaders} may choose to support <em>either</em>
+ * path-based resource locations (typically XML configuration files) <em>or</em>
+ * class-based resources. Alternatively, context loaders may choose to support
+ * path-based <em>and</em> class-based resources simultaneously. Consequently
  * {@code @ContextConfiguration} can be used to declare either path-based resource
  * locations (via the {@link #locations} or {@link #value} attribute) <em>or</em>
  * component classes (via the {@link #classes} attribute). Note, however, that most
- * implementations of {@link SmartContextLoader} only support a single resource type. As
- * of Spring 4.1, path-based resource locations may be either XML configuration files or
- * Groovy scripts (if Groovy is on the classpath). Of course, third-party frameworks may
+ * implementations of {@link SmartContextLoader} only support a single resource type.
+ * Path-based resource locations may be either XML configuration files or Groovy
+ * scripts (if Groovy is on the classpath). Of course, third-party frameworks may
  * choose to support additional types of path-based resources.
  *
  * <h3>Component Classes</h3>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.util;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +27,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Simple utility methods for file and stream copying. All copy methods use a block size
@@ -146,9 +145,9 @@ public abstract class FileCopyUtils {
 			return new byte[0];
 		}
 
-		ByteArrayOutputStream out = new ByteArrayOutputStream(BUFFER_SIZE);
-		copy(in, out);
-		return out.toByteArray();
+		try (in) {
+			return in.readAllBytes();
+		}
 	}
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package org.springframework.messaging.rsocket.service;
 
 import java.util.Collection;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.MethodParameter;
-import org.springframework.lang.Nullable;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 
 /**
@@ -44,8 +45,8 @@ public class DestinationVariableArgumentResolver implements RSocketServiceArgume
 		}
 
 		if (argument != null) {
-			if (argument instanceof Collection) {
-				((Collection<?>) argument).forEach(requestValues::addRouteVariable);
+			if (argument instanceof Collection<?> collection) {
+				collection.forEach(requestValues::addRouteVariable);
 				return true;
 			}
 			else if (argument.getClass().isArray()) {
