@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,18 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.ReflectionHints;
 import org.springframework.aot.hint.annotation.ReflectiveProcessor;
+import org.springframework.core.KotlinDetector;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.HttpEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * {@link ReflectiveProcessor} implementation for {@link Controller} and
@@ -38,7 +41,7 @@ import org.springframework.stereotype.Controller;
  *
  * <ul>
  *     <li>Return types annotated with {@link ResponseBody}</li>
- *     <li>Parameters annotated with {@link RequestBody}</li>
+ *     <li>Parameters annotated with {@link RequestBody}, {@link ModelAttribute} and {@link RequestPart}</li>
  *     <li>{@link HttpEntity} return types and parameters</li>
  * </ul>
  *
@@ -71,6 +74,11 @@ class ControllerMappingReflectiveProcessor implements ReflectiveProcessor {
 
 	protected void registerMethodHints(ReflectionHints hints, Method method) {
 		hints.registerMethod(method, ExecutableMode.INVOKE);
+		Class<?> declaringClass = method.getDeclaringClass();
+		if (KotlinDetector.isKotlinType(declaringClass)) {
+			ReflectionUtils.doWithMethods(declaringClass, m -> hints.registerMethod(m, ExecutableMode.INVOKE),
+					m -> m.getName().equals(method.getName() + "$default"));
+		}
 		for (Parameter parameter : method.getParameters()) {
 			registerParameterTypeHints(hints, MethodParameter.forParameter(parameter));
 		}
@@ -79,11 +87,15 @@ class ControllerMappingReflectiveProcessor implements ReflectiveProcessor {
 
 	protected void registerParameterTypeHints(ReflectionHints hints, MethodParameter methodParameter) {
 		if (methodParameter.hasParameterAnnotation(RequestBody.class) ||
-				methodParameter.hasParameterAnnotation(ModelAttribute.class)) {
+				methodParameter.hasParameterAnnotation(ModelAttribute.class) ||
+				methodParameter.hasParameterAnnotation(RequestPart.class)) {
 			this.bindingRegistrar.registerReflectionHints(hints, methodParameter.getGenericParameterType());
 		}
 		else if (HttpEntity.class.isAssignableFrom(methodParameter.getParameterType())) {
-			this.bindingRegistrar.registerReflectionHints(hints, getHttpEntityType(methodParameter));
+			Type httpEntityType = getHttpEntityType(methodParameter);
+			if (httpEntityType != null) {
+				this.bindingRegistrar.registerReflectionHints(hints, httpEntityType);
+			}
 		}
 	}
 
@@ -93,12 +105,14 @@ class ControllerMappingReflectiveProcessor implements ReflectiveProcessor {
 			this.bindingRegistrar.registerReflectionHints(hints, returnTypeParameter.getGenericParameterType());
 		}
 		else if (HttpEntity.class.isAssignableFrom(returnTypeParameter.getParameterType())) {
-			this.bindingRegistrar.registerReflectionHints(hints, getHttpEntityType(returnTypeParameter));
+			Type httpEntityType = getHttpEntityType(returnTypeParameter);
+			if (httpEntityType != null) {
+				this.bindingRegistrar.registerReflectionHints(hints, httpEntityType);
+			}
 		}
 	}
 
-	@Nullable
-	private Type getHttpEntityType(MethodParameter parameter) {
+	private @Nullable Type getHttpEntityType(MethodParameter parameter) {
 		MethodParameter nestedParameter = parameter.nested();
 		return (nestedParameter.getNestedParameterType() == nestedParameter.getParameterType() ?
 				null : nestedParameter.getNestedParameterType());

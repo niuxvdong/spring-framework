@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,26 @@
 
 package org.springframework.http.converter.json
 
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
-import java.nio.charset.StandardCharsets
-
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.Test
-import kotlin.reflect.javaType
-import kotlin.reflect.typeOf
-
+import org.springframework.core.MethodParameter
 import org.springframework.core.Ordered
 import org.springframework.core.ResolvableType
 import org.springframework.http.MediaType
-import org.springframework.http.MockHttpInputMessage
-import org.springframework.http.MockHttpOutputMessage
 import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.http.customJson
+import org.springframework.web.testfixture.http.MockHttpInputMessage
+import org.springframework.web.testfixture.http.MockHttpOutputMessage
+import java.lang.reflect.ParameterizedType
+import java.math.BigDecimal
+import java.nio.charset.StandardCharsets
+import kotlin.reflect.javaType
+import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.typeOf
 
 /**
  * Tests for the JSON conversion using kotlinx.serialization.
@@ -52,21 +55,25 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 		assertThat(converter.canRead(String::class.java, MediaType.APPLICATION_JSON)).isTrue()
 		assertThat(converter.canRead(NotSerializableBean::class.java, MediaType.APPLICATION_JSON)).isFalse()
 
-		assertThat(converter.canRead(Map::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canRead(typeTokenOf<Map<String, SerializableBean>>(), Map::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canRead(List::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canRead(typeTokenOf<List<SerializableBean>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canRead(Set::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canRead(typeTokenOf<Set<SerializableBean>>(), Set::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(Map::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<Map<String, SerializableBean>>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(List::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<List<SerializableBean>>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(Set::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<Set<SerializableBean>>(), MediaType.APPLICATION_JSON)).isTrue()
 
-		assertThat(converter.canRead(typeTokenOf<List<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canRead(typeTokenOf<ArrayList<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canRead(typeTokenOf<List<Int>>(), List::class.java, MediaType.APPLICATION_PDF)).isFalse()
+		assertThat(converter.canRead(resolvableTypeOf<List<Int>>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<ArrayList<Int>>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<List<Int>>(), MediaType.APPLICATION_PDF)).isFalse()
 
-		assertThat(converter.canRead(typeTokenOf<Ordered>(), Ordered::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canRead(typeTokenOf<List<Ordered>>(), List::class.java, MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(converter.canRead(resolvableTypeOf<Ordered>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<List<Ordered>>(), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canRead(resolvableTypeOf<OrderedImpl>(), MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(converter.canRead(resolvableTypeOf<List<OrderedImpl>>(), MediaType.APPLICATION_JSON)).isFalse()
 
-		assertThat(converter.canRead(ResolvableType.NONE.type, null, MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(converter.canRead(ResolvableType.forType(ResolvableType.NONE.type), MediaType.APPLICATION_JSON)).isFalse()
+
+		assertThat(converter.canRead(ResolvableType.forType(BigDecimal::class.java), MediaType.APPLICATION_JSON)).isFalse()
 	}
 
 	@Test
@@ -76,20 +83,23 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 		assertThat(converter.canWrite(String::class.java, MediaType.APPLICATION_JSON)).isTrue()
 		assertThat(converter.canWrite(NotSerializableBean::class.java, MediaType.APPLICATION_JSON)).isFalse()
 
-		assertThat(converter.canWrite(Map::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canWrite(typeTokenOf<Map<String, SerializableBean>>(), Map::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canWrite(List::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canWrite(typeTokenOf<List<SerializableBean>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canWrite(Set::class.java, MediaType.APPLICATION_JSON)).isFalse()
-		assertThat(converter.canWrite(typeTokenOf<Set<SerializableBean>>(), Set::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(Map::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<Map<String, SerializableBean>>(), Map::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(List::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<List<SerializableBean>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(Set::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<Set<SerializableBean>>(), Set::class.java, MediaType.APPLICATION_JSON)).isTrue()
 
-		assertThat(converter.canWrite(typeTokenOf<List<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canWrite(typeTokenOf<ArrayList<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(converter.canWrite(typeTokenOf<List<Int>>(), List::class.java, MediaType.APPLICATION_PDF)).isFalse()
+		assertThat(converter.canWrite(resolvableTypeOf<List<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<ArrayList<Int>>(), List::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<List<Int>>(), List::class.java, MediaType.APPLICATION_PDF)).isFalse()
 
-		assertThat(converter.canWrite(typeTokenOf<Ordered>(), Ordered::class.java, MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(converter.canWrite(resolvableTypeOf<Ordered>(), Ordered::class.java, MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(converter.canWrite(resolvableTypeOf<OrderedImpl>(), OrderedImpl::class.java, MediaType.APPLICATION_JSON)).isFalse()
 
-		assertThat(converter.canWrite(ResolvableType.NONE.type, SerializableBean::class.java, MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(converter.canWrite(ResolvableType.NONE, SerializableBean::class.java, MediaType.APPLICATION_JSON)).isFalse()
+
+		assertThat(converter.canWrite(ResolvableType.forType(BigDecimal::class.java), BigDecimal::class.java, MediaType.APPLICATION_JSON)).isFalse()
 	}
 
 	@Test
@@ -192,7 +202,7 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 		""".trimIndent()
 		val inputMessage = MockHttpInputMessage(body.toByteArray(charset("UTF-8")))
 		inputMessage.headers.contentType = MediaType.APPLICATION_JSON
-		val result = converter.read(typeOf<List<SerializableBean>>().javaType, null, inputMessage)
+		val result = converter.read(ResolvableType.forType(typeOf<List<SerializableBean>>().javaType), inputMessage, null)
 				as List<SerializableBean>
 
 		assertThat(result).hasSize(1)
@@ -229,6 +239,39 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 	}
 
 	@Test
+	@Suppress("UNCHECKED_CAST")
+	fun readNullableWithNull() {
+		val body = """{"value":null}"""
+
+		val inputMessage = MockHttpInputMessage(body.toByteArray(StandardCharsets.UTF_8))
+		inputMessage.headers.contentType = MediaType.APPLICATION_JSON
+		val methodParameter = MethodParameter.forExecutable(::handleMapWithNullable::javaMethod.get()!!, 0)
+		val result = converter.read(ResolvableType.forMethodParameter(methodParameter), inputMessage, null) as Map<String, String?>
+
+		assertThat(result).containsExactlyEntriesOf(mapOf("value" to null))
+	}
+
+	@Test
+	@Suppress("UNCHECKED_CAST")
+	fun readWithPolymorphism() {
+		val json = Json {
+			serializersModule = SerializersModule {
+				polymorphic(ISimpleSerializableBean::class, SimpleSerializableBean::class, SimpleSerializableBean.serializer())
+			}
+		}
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(json)
+		val body = """[{"type":"org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverterTests.SimpleSerializableBean","name":"foo"},""" +
+				"""{"type":"org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverterTests.SimpleSerializableBean","name":"bar"}]"""
+
+		val inputMessage = MockHttpInputMessage(body.toByteArray(StandardCharsets.UTF_8))
+		inputMessage.headers.contentType = MediaType.APPLICATION_JSON
+		val resolvableType = ResolvableType.forClassWithGenerics(List::class.java, ISimpleSerializableBean::class.java)
+		val result = customConverter.read(resolvableType, inputMessage, null) as List<ISimpleSerializableBean>
+
+		assertThat(result).containsExactly(SimpleSerializableBean("foo"), SimpleSerializableBean("bar"))
+	}
+
+	@Test
 	fun writeObject() {
 		val outputMessage = MockHttpOutputMessage()
 		val serializableBean = SerializableBean(byteArrayOf(0x1, 0x2), arrayOf("Foo", "Bar"), 42, "Foo", true, 42.0f)
@@ -237,7 +280,7 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 
 		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
 
-		assertThat(outputMessage.headers).containsEntry("Content-Type", listOf("application/json"))
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
 		assertThat(result)
 				.contains("\"bytes\":[1,2]")
 				.contains("\"array\":[\"Foo\",\"Bar\"]")
@@ -256,7 +299,7 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 
 		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
 
-		assertThat(outputMessage.headers).containsEntry("Content-Type", listOf("application/json"))
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
 		assertThat(result)
 				.contains("\"bytes\":[1,2]")
 				.contains("\"array\":[\"Foo\",\"Bar\"]")
@@ -278,7 +321,7 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 
 		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
 
-		assertThat(outputMessage.headers).containsEntry("Content-Type", listOf("application/json"))
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
 		assertThat(result).isEqualTo(expectedJson)
 	}
 
@@ -291,12 +334,12 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 			[{"bytes":[1,2],"array":["Foo","Bar"],"number":42,"string":"Foo","bool":true,"fraction":42.0}]
 		""".trimIndent()
 
-		this.converter.write(arrayListOf(serializableBean), typeOf<List<SerializableBean>>().javaType, null,
-				outputMessage)
+		this.converter.write(arrayListOf(serializableBean), ResolvableType.forType(typeOf<List<SerializableBean>>().javaType), null,
+				outputMessage, null)
 
 		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
 
-		assertThat(outputMessage.headers).containsEntry("Content-Type", listOf("application/json"))
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
 		assertThat(result).isEqualTo(expectedJson)
 	}
 
@@ -310,8 +353,95 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 
 		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_16BE)
 
-		assertThat(outputMessage.headers).containsEntry("Content-Type", listOf(contentType.toString()))
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", contentType.toString())).isTrue()
 		assertThat(result).isEqualTo("\"H\u00e9llo W\u00f6rld\"")
+	}
+
+	@Test
+	fun canReadBigDecimalWithSerializerModule() {
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(customJson)
+		assertThat(customConverter.canRead(BigDecimal::class.java, MediaType.APPLICATION_JSON)).isTrue()
+	}
+
+	@Test
+	fun canWriteBigDecimalWithSerializerModule() {
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(customJson)
+		assertThat(customConverter.canWrite(BigDecimal::class.java, MediaType.APPLICATION_JSON)).isTrue()
+	}
+
+	@Test
+	fun readBigDecimalWithSerializerModule() {
+		val body = "1.0"
+		val inputMessage = MockHttpInputMessage(body.toByteArray(charset("UTF-8")))
+		inputMessage.headers.contentType = MediaType.APPLICATION_JSON
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(customJson)
+		val result = customConverter.read(BigDecimal::class.java, inputMessage) as BigDecimal
+
+		assertThat(result).isEqualTo(BigDecimal.valueOf(1.0))
+	}
+
+	@Test
+	fun writeBigDecimalWithSerializerModule() {
+		val outputMessage = MockHttpOutputMessage()
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(customJson)
+
+		customConverter.write(BigDecimal(1), null, outputMessage)
+
+		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
+
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
+		assertThat(result).isEqualTo("1.0")
+	}
+
+	@Test
+	@ExperimentalStdlibApi
+	fun writeNullableWithNull() {
+		val outputMessage = MockHttpOutputMessage()
+		val serializableBean = mapOf<String, String?>("value" to null)
+		val expectedJson = """{"value":null}"""
+		val methodParameter = MethodParameter.forExecutable(::handleMapWithNullable::javaMethod.get()!!, -1)
+
+		this.converter.write(serializableBean, ResolvableType.forMethodParameter(methodParameter), null,
+			outputMessage, null)
+
+		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
+
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
+		assertThat(result).isEqualTo(expectedJson)
+	}
+
+	@Test
+	fun writeProperty() {
+		val outputMessage = MockHttpOutputMessage()
+		val method = this::class.java.getDeclaredMethod("getValue")
+		val methodParameter = MethodParameter.forExecutable(method, -1)
+
+		this.converter.write(value, ResolvableType.forMethodParameter(methodParameter), null, outputMessage, null)
+		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
+
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
+		assertThat(result).isEqualTo("42")
+	}
+
+	@Test
+	fun writeWithPolymorphism() {
+		val json = Json {
+			serializersModule = SerializersModule {
+				polymorphic(ISimpleSerializableBean::class, SimpleSerializableBean::class, SimpleSerializableBean.serializer())
+			}
+		}
+		val customConverter = KotlinSerializationJsonHttpMessageConverter(json)
+
+		val outputMessage = MockHttpOutputMessage()
+		val value = listOf(SimpleSerializableBean("foo"), SimpleSerializableBean("bar"))
+		customConverter.write(value, ResolvableType.forClassWithGenerics(List::class.java, ISimpleSerializableBean::class.java), null, outputMessage, null)
+
+		val result = outputMessage.getBodyAsString(StandardCharsets.UTF_8)
+
+		assertThat(outputMessage.headers.containsHeaderValue("Content-Type", "application/json")).isTrue()
+		assertThat(result).isEqualTo(
+			"""[{"type":"org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverterTests.SimpleSerializableBean","name":"foo"},""" +
+					"""{"type":"org.springframework.http.converter.json.KotlinSerializationJsonHttpMessageConverterTests.SimpleSerializableBean","name":"bar"}]""")
 	}
 
 
@@ -331,10 +461,28 @@ class KotlinSerializationJsonHttpMessageConverterTests {
 
 	open class TypeBase<T>
 
-	inline fun <reified T> typeTokenOf(): Type {
+	private inline fun <reified T> resolvableTypeOf(): ResolvableType {
 		val base = object : TypeBase<T>() {}
 		val superType = base::class.java.genericSuperclass!!
-		return (superType as ParameterizedType).actualTypeArguments.first()!!
+		return ResolvableType.forType((superType as ParameterizedType).actualTypeArguments.first()!!)
+	}
+
+	fun handleMapWithNullable(map: Map<String, String?>) = map
+
+	val value: Int
+		get() = 42
+
+	interface ISimpleSerializableBean {
+		val name: String
+	}
+
+	@Serializable
+	data class SimpleSerializableBean(override val name: String): ISimpleSerializableBean
+
+	class OrderedImpl : Ordered {
+		override fun getOrder(): Int {
+			return 0
+		}
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,19 +30,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import com.gargoylesoftware.htmlunit.FormEncodingType;
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebRequest;
-import com.gargoylesoftware.htmlunit.util.KeyDataPair;
-import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.htmlunit.FormEncodingType;
+import org.htmlunit.WebClient;
+import org.htmlunit.WebRequest;
+import org.htmlunit.util.KeyDataPair;
+import org.htmlunit.util.NameValuePair;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.beans.Mergeable;
 import org.springframework.http.MediaType;
-import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockPart;
@@ -79,17 +79,13 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 
 	private final WebRequest webRequest;
 
-	@Nullable
-	private String contextPath;
+	private @Nullable String contextPath;
 
-	@Nullable
-	private RequestBuilder parentBuilder;
+	private @Nullable RequestBuilder parentBuilder;
 
-	@Nullable
-	private SmartRequestBuilder parentPostProcessor;
+	private @Nullable SmartRequestBuilder parentPostProcessor;
 
-	@Nullable
-	private RequestPostProcessor forwardPostProcessor;
+	private @Nullable RequestPostProcessor forwardPostProcessor;
 
 
 	/**
@@ -234,8 +230,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 		}
 	}
 
-	@Nullable
-	private String getHeader(String headerName) {
+	private @Nullable String getHeader(String headerName) {
 		return this.webRequest.getAdditionalHeaders().get(headerName);
 	}
 
@@ -301,8 +296,8 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 			}
 		}
 
-		Set<com.gargoylesoftware.htmlunit.util.Cookie> managedCookies = this.webClient.getCookies(this.webRequest.getUrl());
-		for (com.gargoylesoftware.htmlunit.util.Cookie cookie : managedCookies) {
+		Set<org.htmlunit.util.Cookie> managedCookies = this.webClient.getCookies(this.webRequest.getUrl());
+		for (org.htmlunit.util.Cookie cookie : managedCookies) {
 			processCookie(request, cookies, new Cookie(cookie.getName(), cookie.getValue()));
 		}
 
@@ -351,8 +346,8 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 		this.webClient.getCookieManager().removeCookie(createCookie(request, sessionid));
 	}
 
-	private com.gargoylesoftware.htmlunit.util.Cookie createCookie(MockHttpServletRequest request, String sessionid) {
-		return new com.gargoylesoftware.htmlunit.util.Cookie(request.getServerName(), "JSESSIONID", sessionid,
+	private org.htmlunit.util.Cookie createCookie(MockHttpServletRequest request, String sessionid) {
+		return new org.htmlunit.util.Cookie(request.getServerName(), "JSESSIONID", sessionid,
 				request.getContextPath() + "/", null, request.isSecure(), true);
 	}
 
@@ -370,8 +365,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 	}
 
 	private void addRequestParameter(MockHttpServletRequest request, NameValuePair param) {
-		if (param instanceof KeyDataPair) {
-			KeyDataPair pair = (KeyDataPair) param;
+		if (param instanceof KeyDataPair pair) {
 			File file = pair.getFile();
 			MockPart part;
 			if (file != null) {
@@ -424,17 +418,17 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 
 	@Override
 	public Object merge(@Nullable Object parent) {
-		if (parent instanceof RequestBuilder) {
+		if (parent instanceof RequestBuilder requestBuilder) {
 			if (parent instanceof MockHttpServletRequestBuilder) {
 				MockHttpServletRequestBuilder copiedParent = MockMvcRequestBuilders.get("/");
 				copiedParent.merge(parent);
 				this.parentBuilder = copiedParent;
 			}
 			else {
-				this.parentBuilder = (RequestBuilder) parent;
+				this.parentBuilder = requestBuilder;
 			}
-			if (parent instanceof SmartRequestBuilder) {
-				this.parentPostProcessor = (SmartRequestBuilder) parent;
+			if (parent instanceof SmartRequestBuilder smartRequestBuilder) {
+				this.parentPostProcessor = smartRequestBuilder;
 			}
 		}
 		return this;
@@ -452,7 +446,7 @@ final class HtmlUnitRequestBuilder implements RequestBuilder, Mergeable {
 		}
 
 		@Override
-		public HttpSession getSession(boolean create) {
+		public @Nullable HttpSession getSession(boolean create) {
 			HttpSession session = super.getSession(false);
 			if (session == null && create) {
 				HtmlUnitMockHttpSession newSession = new HtmlUnitMockHttpSession(this);

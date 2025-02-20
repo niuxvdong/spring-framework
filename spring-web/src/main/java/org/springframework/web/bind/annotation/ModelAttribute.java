@@ -22,6 +22,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.aot.hint.annotation.Reflective;
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.ui.Model;
 
@@ -60,12 +61,14 @@ import org.springframework.ui.Model;
  *
  * @author Juergen Hoeller
  * @author Rossen Stoyanchev
+ * @author Sebastien Deleuze
  * @since 2.5
  * @see ControllerAdvice
  */
 @Target({ElementType.PARAMETER, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Reflective
 public @interface ModelAttribute {
 
 	/**
@@ -79,7 +82,7 @@ public @interface ModelAttribute {
 	 * <p>The default model attribute name is inferred from the declared
 	 * attribute type (i.e. the method parameter type or method return type),
 	 * based on the non-qualified class name:
-	 * e.g. "orderAddress" for class "mypackage.OrderAddress",
+	 * for example, "orderAddress" for class "mypackage.OrderAddress",
 	 * or "orderAddressList" for "List&lt;mypackage.OrderAddress&gt;".
 	 * @since 4.3
 	 */

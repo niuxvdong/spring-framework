@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ package org.springframework.http.converter;
 
 import java.io.IOException;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -51,8 +52,10 @@ public class ByteArrayHttpMessageConverter extends AbstractHttpMessageConverter<
 	}
 
 	@Override
-	public byte[] readInternal(Class<? extends byte[]> clazz, HttpInputMessage inputMessage) throws IOException {
-		return inputMessage.getBody().readAllBytes();
+	public byte[] readInternal(Class<? extends byte[]> clazz, HttpInputMessage message) throws IOException {
+		long length = message.getHeaders().getContentLength();
+		return (length >= 0 && length < Integer.MAX_VALUE ?
+				message.getBody().readNBytes((int) length) : message.getBody().readAllBytes());
 	}
 
 	@Override
@@ -65,4 +68,8 @@ public class ByteArrayHttpMessageConverter extends AbstractHttpMessageConverter<
 		StreamUtils.copy(bytes, outputMessage.getBody());
 	}
 
+	@Override
+	protected boolean supportsRepeatableWrites(byte[] bytes) {
+		return true;
+	}
 }

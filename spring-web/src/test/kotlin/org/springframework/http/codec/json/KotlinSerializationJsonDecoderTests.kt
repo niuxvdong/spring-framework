@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,14 @@
 package org.springframework.http.codec.json
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.core.MethodParameter
 import org.springframework.core.Ordered
 import org.springframework.core.ResolvableType
+import org.springframework.core.codec.DecodingException
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.testfixture.codec.AbstractDecoderTests
 import org.springframework.http.MediaType
@@ -28,9 +32,10 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import reactor.test.StepVerifier.FirstStep
-import java.lang.UnsupportedOperationException
+import java.math.BigDecimal
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Tests for the JSON decoding using kotlinx.serialization.
@@ -39,7 +44,6 @@ import java.nio.charset.StandardCharsets
  */
 class KotlinSerializationJsonDecoderTests : AbstractDecoderTests<KotlinSerializationJsonDecoder>(KotlinSerializationJsonDecoder()) {
 
-	@Suppress("UsePropertyAccessSyntax", "DEPRECATION")
 	@Test
 	override fun canDecode() {
 		val jsonSubtype = MediaType("application", "vnd.test-micro-type+json")
@@ -56,20 +60,111 @@ class KotlinSerializationJsonDecoderTests : AbstractDecoderTests<KotlinSerializa
 				MediaType("application", "json", StandardCharsets.ISO_8859_1))).isTrue()
 
 		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(List::class.java, Int::class.java), MediaType.APPLICATION_JSON)).isTrue()
-		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(List::class.java, Ordered::class.java), MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(List::class.java, Ordered::class.java), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(List::class.java, OrderedImpl::class.java), MediaType.APPLICATION_JSON)).isFalse()
 		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(List::class.java, Pojo::class.java), MediaType.APPLICATION_JSON)).isTrue()
 		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(ArrayList::class.java, Int::class.java), MediaType.APPLICATION_JSON)).isTrue()
 		assertThat(decoder.canDecode(ResolvableType.forClassWithGenerics(ArrayList::class.java, Int::class.java), MediaType.APPLICATION_PDF)).isFalse()
-		assertThat(decoder.canDecode(ResolvableType.forClass(Ordered::class.java), MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(decoder.canDecode(ResolvableType.forClass(Ordered::class.java), MediaType.APPLICATION_JSON)).isTrue()
+		assertThat(decoder.canDecode(ResolvableType.forClass(OrderedImpl::class.java), MediaType.APPLICATION_JSON)).isFalse()
 		assertThat(decoder.canDecode(ResolvableType.NONE, MediaType.APPLICATION_JSON)).isFalse()
+		assertThat(decoder.canDecode(ResolvableType.forClass(BigDecimal::class.java), MediaType.APPLICATION_JSON)).isFalse()
+
+		assertThat(decoder.canDecode(ResolvableType.forClass(Pojo::class.java), MediaType.APPLICATION_NDJSON)).isTrue()
 	}
 
 	@Test
 	override fun decode() {
-		val output = decoder.decode(Mono.empty(), ResolvableType.forClass(Pojo::class.java), null, emptyMap())
-		StepVerifier
-				.create(output)
-				.expectError(UnsupportedOperationException::class.java)
+		val input = Flux.concat(
+			stringBuffer("{\"bar\":\"b1\",\"foo\":\"f1\"}\n"),
+			stringBuffer("{\"bar\":\"b2\",\"foo\":\"f2\"}\n")
+		)
+
+		testDecodeAll(input, ResolvableType.forClass(Pojo::class.java), {
+			it.expectNext(Pojo("f1", "b1"))
+				.expectNext(Pojo("f2", "b2"))
+				.expectComplete()
+				.verify()
+		}, null, null)
+	}
+
+	@Test
+	@Suppress("UNCHECKED_CAST")
+	fun polymorphicDecode() {
+		val json = Json {
+			serializersModule = SerializersModule {
+				polymorphic(ISimpleSerializableBean::class, SimpleSerializableBean::class, SimpleSerializableBean.serializer())
+			}
+		}
+		val customDecoder = KotlinSerializationJsonDecoder(json)
+		val input = Flux.concat(
+			stringBuffer("{\"type\":\"org.springframework.http.codec.json.KotlinSerializationJsonDecoderTests.SimpleSerializableBean\",\"name\":\"foo\"}\n"),
+			stringBuffer("{\"type\":\"org.springframework.http.codec.json.KotlinSerializationJsonDecoderTests.SimpleSerializableBean\",\"name\":\"bar\"}\n"),
+			stringBuffer("{\"type\":\"org.springframework.http.codec.json.KotlinSerializationJsonDecoderTests.SimpleSerializableBean\",\"name\":\"baz\"}\n")
+		)
+
+		val resolvableType = ResolvableType.forClass(ISimpleSerializableBean::class.java)
+		val result: Flux<ISimpleSerializableBean> = customDecoder.decode(input, resolvableType, null, null) as Flux<ISimpleSerializableBean>
+		val step: FirstStep<ISimpleSerializableBean> = StepVerifier.create(result)
+
+		step.expectNext(SimpleSerializableBean("foo"))
+			.expectNext(SimpleSerializableBean("bar"))
+			.expectNext(SimpleSerializableBean("baz"))
+			.verifyComplete()
+	}
+
+	@Test
+	fun decodeWithUnexpectedFormat() {
+		val input = Flux.concat(
+			stringBuffer("{\"ba\":\"b1\",\"fo\":\"f1\"}\n"),
+		)
+
+		testDecode(input, ResolvableType.forClass(Pojo::class.java), { step: FirstStep<Pojo> ->
+			step
+				.expectError(DecodingException::class.java)
+				.verify() }, null, null)
+	}
+
+	@Test
+	fun decodeToMonoWithUnexpectedFormat() {
+		val input = Flux.concat(
+			stringBuffer("{\"ba\":\"b1\",\"fo\":\"f1\"}\n"),
+		)
+
+		testDecodeToMono(input, ResolvableType.forClass(Pojo::class.java), { step: FirstStep<Pojo> ->
+			step.expectError(DecodingException::class.java)
+				.verify() }, null, null)
+	}
+
+	@Test
+	fun decodeStreamWithSingleBuffer() {
+		val input = Flux.concat(
+			stringBuffer("{\"bar\":\"b1\",\"foo\":\"f1\"}\n{\"bar\":\"b2\",\"foo\":\"f2\"}\n"),
+		)
+
+		testDecodeAll(input, ResolvableType.forClass(Pojo::class.java), {
+			it.expectNext(Pojo("f1", "b1"))
+				.expectNext(Pojo("f2", "b2"))
+				.expectComplete()
+				.verify()
+		}, null, null)
+	}
+
+	@Test
+	fun decodeStreamWithMultipleBuffersPerElement() {
+		val input = Flux.concat(
+			stringBuffer("{\"bar\":\"b1\","),
+			stringBuffer("\"foo\":\"f1\"}\n"),
+			stringBuffer("{\""),
+			stringBuffer("bar\":\"b2\",\"foo\":\"f2\"}\n")
+		)
+
+		testDecodeAll(input, ResolvableType.forClass(Pojo::class.java), {
+			it.expectNext(Pojo("f1", "b1"))
+				.expectNext(Pojo("f2", "b2"))
+				.expectComplete()
+				.verify()
+		}, null, null)
 	}
 
 	@Test
@@ -80,11 +175,26 @@ class KotlinSerializationJsonDecoderTests : AbstractDecoderTests<KotlinSerializa
 
 		val elementType = ResolvableType.forClassWithGenerics(List::class.java, Pojo::class.java)
 
-		testDecodeToMonoAll(input, elementType, { step: FirstStep<Any> ->
-			step
-					.expectNext(listOf(Pojo("f1", "b1"), Pojo("f2", "b2")))
-					.expectComplete()
-					.verify()
+		testDecodeToMonoAll(input, elementType, {
+			it.expectNext(listOf(Pojo("f1", "b1"), Pojo("f2", "b2")))
+				.expectComplete()
+				.verify()
+		}, null, null)
+	}
+
+	@Test
+	fun decodeToMonoWithNullableWithNull() {
+		val input = Flux.concat(
+			stringBuffer("{\"value\":null}\n"),
+		)
+
+		val methodParameter = MethodParameter.forExecutable(::handleMapWithNullable::javaMethod.get()!!, -1)
+		val elementType = ResolvableType.forMethodParameter(methodParameter)
+
+		testDecodeToMonoAll(input, elementType, {
+			it.expectNext(mapOf("value" to null))
+				.expectComplete()
+				.verify()
 		}, null, null)
 	}
 
@@ -104,5 +214,20 @@ class KotlinSerializationJsonDecoderTests : AbstractDecoderTests<KotlinSerializa
 
 	@Serializable
 	data class Pojo(val foo: String, val bar: String, val pojo: Pojo? = null)
+
+	fun handleMapWithNullable(map: Map<String, String?>) = map
+
+	interface ISimpleSerializableBean {
+		val name: String
+	}
+
+	@Serializable
+	data class SimpleSerializableBean(override val name: String): ISimpleSerializableBean
+
+	class OrderedImpl : Ordered {
+		override fun getOrder(): Int {
+			return 0
+		}
+	}
 
 }

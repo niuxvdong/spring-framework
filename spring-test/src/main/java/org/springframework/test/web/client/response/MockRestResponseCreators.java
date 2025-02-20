@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,22 +19,25 @@ package org.springframework.test.web.client.response;
 import java.io.IOException;
 import java.net.URI;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.lang.Nullable;
 import org.springframework.test.web.client.ResponseCreator;
 
 /**
- * Static factory methods for obtaining a {@link ResponseCreator} instance.
+ * Static factory methods to obtain a {@link ResponseCreator} with a fixed
+ * response.
  *
- * <p><strong>Eclipse users:</strong> consider adding this class as a Java editor
- * favorite. To navigate, open the Preferences and type "favorites".
+ * <p>In addition, see also the {@link ExecutingResponseCreator} implementation
+ * that performs actual requests to remote services.
  *
  * @author Rossen Stoyanchev
  * @since 3.2
+ * @see ExecutingResponseCreator
  */
 public abstract class MockRestResponseCreators {
 

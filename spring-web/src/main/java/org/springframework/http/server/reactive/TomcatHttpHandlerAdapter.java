@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,18 +26,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
-import org.apache.catalina.connector.CoyoteInputStream;
-import org.apache.catalina.connector.CoyoteOutputStream;
 import org.apache.catalina.connector.RequestFacade;
 import org.apache.catalina.connector.ResponseFacade;
 import org.apache.coyote.Request;
 import org.apache.coyote.Response;
 
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.Assert;
-import org.springframework.util.MultiValueMap;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -72,17 +68,13 @@ public class TomcatHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 			AsyncContext asyncContext, ServletServerHttpRequest request) throws IOException {
 
 		return new TomcatServerHttpResponse(
-				response, asyncContext, getDataBufferFactory(), getBufferSize(), request);
+				response, asyncContext, getDataBufferFactory(), request);
 	}
 
 
 	private static final class TomcatServerHttpRequest extends ServletServerHttpRequest {
 
 		private static final Field COYOTE_REQUEST_FIELD;
-
-		private final int bufferSize;
-
-		private final DataBufferFactory factory;
 
 		static {
 			Field field = ReflectionUtils.findField(RequestFacade.class, "request");
@@ -96,17 +88,15 @@ public class TomcatHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 				throws IOException, URISyntaxException {
 
 			super(createTomcatHttpHeaders(request), request, context, servletPath, factory, bufferSize);
-			this.factory = factory;
-			this.bufferSize = bufferSize;
 		}
 
-		private static MultiValueMap<String, String> createTomcatHttpHeaders(HttpServletRequest request) {
+		private static HttpHeaders createTomcatHttpHeaders(HttpServletRequest request) {
 			RequestFacade requestFacade = getRequestFacade(request);
 			org.apache.catalina.connector.Request connectorRequest = (org.apache.catalina.connector.Request)
 					ReflectionUtils.getField(COYOTE_REQUEST_FIELD, requestFacade);
 			Assert.state(connectorRequest != null, "No Tomcat connector request");
 			Request tomcatRequest = connectorRequest.getCoyoteRequest();
-			return new TomcatHeadersAdapter(tomcatRequest.getMimeHeaders());
+			return new HttpHeaders(new TomcatHeadersAdapter(tomcatRequest.getMimeHeaders()));
 		}
 
 		private static RequestFacade getRequestFacade(HttpServletRequest request) {
@@ -123,29 +113,6 @@ public class TomcatHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 			}
 		}
 
-		@Override
-		protected DataBuffer readFromInputStream() throws IOException {
-			if (!(getInputStream() instanceof CoyoteInputStream coyoteInputStream)) {
-				// It's possible InputStream can be wrapped, preventing use of CoyoteInputStream
-				return super.readFromInputStream();
-			}
-
-			ByteBuffer byteBuffer = this.factory.isDirect() ?
-					ByteBuffer.allocateDirect(this.bufferSize) :
-					ByteBuffer.allocate(this.bufferSize);
-
-			int read = coyoteInputStream.read(byteBuffer);
-			logBytesRead(read);
-			if (read > 0) {
-				return this.factory.wrap(byteBuffer);
-			}
-			else if (read == -1) {
-				return EOF_BUFFER;
-			}
-			else {
-				return AbstractListenerReadPublisher.EMPTY_BUFFER;
-			}
-		}
 	}
 
 
@@ -161,9 +128,9 @@ public class TomcatHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 		}
 
 		TomcatServerHttpResponse(HttpServletResponse response, AsyncContext context,
-				DataBufferFactory factory, int bufferSize, ServletServerHttpRequest request) throws IOException {
+				DataBufferFactory factory, ServletServerHttpRequest request) throws IOException {
 
-			super(createTomcatHttpHeaders(response), response, context, factory, bufferSize, request);
+			super(createTomcatHttpHeaders(response), response, context, factory, request);
 		}
 
 		private static HttpHeaders createTomcatHttpHeaders(HttpServletResponse response) {
@@ -195,17 +162,6 @@ public class TomcatHttpHandlerAdapter extends ServletHttpHandlerAdapter {
 			adaptHeaders(true);
 		}
 
-		@Override
-		protected int writeToOutputStream(DataBuffer dataBuffer) throws IOException {
-			if (!(getOutputStream() instanceof CoyoteOutputStream coyoteOutputStream)) {
-				return super.writeToOutputStream(dataBuffer);
-			}
-
-			ByteBuffer input = dataBuffer.toByteBuffer();
-			int len = input.remaining();
-			coyoteOutputStream.write(input);
-			return len;
-		}
 	}
 
 }

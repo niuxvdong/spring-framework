@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package org.springframework.test.web.client;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +35,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Unit tests for {@link UnorderedRequestExpectationManager}.
+ * Tests for {@link UnorderedRequestExpectationManager}.
  *
  * @author Rossen Stoyanchev
  */
@@ -121,12 +120,7 @@ class UnorderedRequestExpectationManagerTests {
 
 
 	private ClientHttpRequest createRequest(HttpMethod method, String url) {
-		try {
-			return new MockClientHttpRequest(method,  new URI(url));
-		}
-		catch (URISyntaxException ex) {
-			throw new IllegalStateException(ex);
-		}
+		return new MockClientHttpRequest(method, URI.create(url));
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.beans.BeanMetadataElement;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.TypedStringValue;
-import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
@@ -53,7 +57,7 @@ abstract class AutowireUtils {
 
 	public static final Comparator<Executable> EXECUTABLE_COMPARATOR = (e1, e2) -> {
 		int result = Boolean.compare(Modifier.isPublic(e2.getModifiers()), Modifier.isPublic(e1.getModifiers()));
-		return result != 0 ? result : Integer.compare(e2.getParameterCount(), e1.getParameterCount());
+		return (result != 0 ? result : Integer.compare(e2.getParameterCount(), e1.getParameterCount()));
 	};
 
 
@@ -122,14 +126,13 @@ abstract class AutowireUtils {
 
 	/**
 	 * Resolve the given autowiring value against the given required type,
-	 * e.g. an {@link ObjectFactory} value to its actual object result.
+	 * for example, an {@link ObjectFactory} value to its actual object result.
 	 * @param autowiringValue the value to resolve
 	 * @param requiredType the type to assign the result to
 	 * @return the resolved value
 	 */
 	public static Object resolveAutowiringValue(Object autowiringValue, Class<?> requiredType) {
-		if (autowiringValue instanceof ObjectFactory && !requiredType.isInstance(autowiringValue)) {
-			ObjectFactory<?> factory = (ObjectFactory<?>) autowiringValue;
+		if (autowiringValue instanceof ObjectFactory<?> factory && !requiredType.isInstance(autowiringValue)) {
 			if (autowiringValue instanceof Serializable && requiredType.isInterface()) {
 				autowiringValue = Proxy.newProxyInstance(requiredType.getClassLoader(),
 						new Class<?>[] {requiredType}, new ObjectFactoryDelegatingInvocationHandler(factory));
@@ -158,7 +161,7 @@ abstract class AutowireUtils {
 	 * the given {@code method} does not declare any {@linkplain
 	 * Method#getTypeParameters() formal type variables}</li>
 	 * <li>the {@linkplain Method#getReturnType() standard return type}, if the
-	 * target return type cannot be inferred (e.g., due to type erasure)</li>
+	 * target return type cannot be inferred (for example, due to type erasure)</li>
 	 * <li>{@code null}, if the length of the given arguments array is shorter
 	 * than the length of the {@linkplain
 	 * Method#getGenericParameterTypes() formal argument list} for the given
@@ -173,7 +176,7 @@ abstract class AutowireUtils {
 	 * @since 3.2.5
 	 */
 	public static Class<?> resolveReturnTypeForFactoryMethod(
-			Method method, Object[] args, @Nullable ClassLoader classLoader) {
+			Method method, @Nullable Object[] args, @Nullable ClassLoader classLoader) {
 
 		Assert.notNull(method, "Method must not be null");
 		Assert.notNull(args, "Argument array must not be null");
@@ -183,8 +186,8 @@ abstract class AutowireUtils {
 		Type[] methodParameterTypes = method.getGenericParameterTypes();
 		Assert.isTrue(args.length == methodParameterTypes.length, "Argument array does not match parameter count");
 
-		// Ensure that the type variable (e.g., T) is declared directly on the method
-		// itself (e.g., via <T>), not on the enclosing class or interface.
+		// Ensure that the type variable (for example, T) is declared directly on the method
+		// itself (for example, via <T>), not on the enclosing class or interface.
 		boolean locallyDeclaredTypeVariableMatchesReturnType = false;
 		for (TypeVariable<Method> currentTypeVariable : declaredTypeVariables) {
 			if (currentTypeVariable.equals(genericReturnType)) {
@@ -223,13 +226,13 @@ abstract class AutowireUtils {
 					Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
 					for (Type typeArg : actualTypeArguments) {
 						if (typeArg.equals(genericReturnType)) {
-							if (arg instanceof Class) {
-								return (Class<?>) arg;
+							if (arg instanceof Class<?> clazz) {
+								return clazz;
 							}
 							else {
 								String className = null;
-								if (arg instanceof String) {
-									className = (String) arg;
+								if (arg instanceof String name) {
+									className = name;
 								}
 								else if (arg instanceof TypedStringValue typedValue) {
 									String targetTypeName = typedValue.getTargetTypeName();
@@ -260,6 +263,43 @@ abstract class AutowireUtils {
 		return method.getReturnType();
 	}
 
+	/**
+	 * Check the autowire-candidate status for the specified bean.
+	 * @param beanFactory the bean factory
+	 * @param beanName the name of the bean to check
+	 * @return whether the specified bean qualifies as an autowire candidate
+	 * @since 6.2.3
+	 * @see org.springframework.beans.factory.config.BeanDefinition#isAutowireCandidate()
+	 */
+	public static boolean isAutowireCandidate(ConfigurableBeanFactory beanFactory, String beanName) {
+		try {
+			return beanFactory.getMergedBeanDefinition(beanName).isAutowireCandidate();
+		}
+		catch (NoSuchBeanDefinitionException ex) {
+			// A manually registered singleton instance not backed by a BeanDefinition.
+			return true;
+		}
+	}
+
+	/**
+	 * Check the default-candidate status for the specified bean.
+	 * @param beanFactory the bean factory
+	 * @param beanName the name of the bean to check
+	 * @return whether the specified bean qualifies as a default candidate
+	 * @since 6.2.4
+	 * @see AbstractBeanDefinition#isDefaultCandidate()
+	 */
+	public static boolean isDefaultCandidate(ConfigurableBeanFactory beanFactory, String beanName) {
+		try {
+			BeanDefinition mbd = beanFactory.getMergedBeanDefinition(beanName);
+			return (!(mbd instanceof AbstractBeanDefinition abd) || abd.isDefaultCandidate());
+		}
+		catch (NoSuchBeanDefinitionException ex) {
+			// A manually registered singleton instance not backed by a BeanDefinition.
+			return true;
+		}
+	}
+
 
 	/**
 	 * Reflective {@link InvocationHandler} for lazy access to the current target object.
@@ -275,22 +315,19 @@ abstract class AutowireUtils {
 
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-			switch (method.getName()) {
-				case "equals":
-					// Only consider equal when proxies are identical.
-					return (proxy == args[0]);
-				case "hashCode":
-					// Use hashCode of proxy.
-					return System.identityHashCode(proxy);
-				case "toString":
-					return this.objectFactory.toString();
-			}
-			try {
-				return method.invoke(this.objectFactory.getObject(), args);
-			}
-			catch (InvocationTargetException ex) {
-				throw ex.getTargetException();
-			}
+			return switch (method.getName()) {
+				case "equals" -> (proxy == args[0]); // Only consider equal when proxies are identical.
+				case "hashCode" -> System.identityHashCode(proxy); // Use hashCode of proxy.
+				case "toString" -> this.objectFactory.toString();
+				default -> {
+					try {
+						yield method.invoke(this.objectFactory.getObject(), args);
+					}
+					catch (InvocationTargetException ex) {
+						throw ex.getTargetException();
+					}
+				}
+			};
 		}
 	}
 

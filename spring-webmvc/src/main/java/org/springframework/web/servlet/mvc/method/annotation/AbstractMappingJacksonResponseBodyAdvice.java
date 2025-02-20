@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2014 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package org.springframework.web.servlet.mvc.method.annotation;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -23,7 +25,6 @@ import org.springframework.http.converter.json.AbstractJackson2HttpMessageConver
 import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
-import org.springframework.lang.Nullable;
 
 /**
  * A convenient base class for {@code ResponseBodyAdvice} implementations
@@ -42,8 +43,7 @@ public abstract class AbstractMappingJacksonResponseBodyAdvice implements Respon
 	}
 
 	@Override
-	@Nullable
-	public final Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType,
+	public final @Nullable Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType,
 			MediaType contentType, Class<? extends HttpMessageConverter<?>> converterType,
 			ServerHttpRequest request, ServerHttpResponse response) {
 
@@ -60,7 +60,7 @@ public abstract class AbstractMappingJacksonResponseBodyAdvice implements Respon
 	 * additional serialization instructions) or simply cast it if already wrapped.
 	 */
 	protected MappingJacksonValue getOrCreateContainer(Object body) {
-		return (body instanceof MappingJacksonValue ? (MappingJacksonValue) body : new MappingJacksonValue(body));
+		return (body instanceof MappingJacksonValue mjv ? mjv : new MappingJacksonValue(body));
 	}
 
 	/**

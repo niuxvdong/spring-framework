@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.aopalliance.intercept.Interceptor;
 import org.aopalliance.intercept.MethodInterceptor;
+import org.jspecify.annotations.Nullable;
 
 import org.springframework.aop.Advisor;
 import org.springframework.aop.IntroductionAdvisor;
@@ -32,7 +33,6 @@ import org.springframework.aop.MethodMatcher;
 import org.springframework.aop.PointcutAdvisor;
 import org.springframework.aop.framework.adapter.AdvisorAdapterRegistry;
 import org.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
-import org.springframework.lang.Nullable;
 
 /**
  * A simple but definitive way of working out an advice chain for a Method,
@@ -46,6 +46,13 @@ import org.springframework.lang.Nullable;
  */
 @SuppressWarnings("serial")
 public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializable {
+
+	/**
+	 * Singleton instance of this class.
+	 * @since 6.0.10
+	 */
+	public static final DefaultAdvisorChainFactory INSTANCE = new DefaultAdvisorChainFactory();
+
 
 	@Override
 	public List<Object> getInterceptorsAndDynamicInterceptionAdvice(
@@ -65,11 +72,11 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 				if (config.isPreFiltered() || pointcutAdvisor.getPointcut().getClassFilter().matches(actualClass)) {
 					MethodMatcher mm = pointcutAdvisor.getPointcut().getMethodMatcher();
 					boolean match;
-					if (mm instanceof IntroductionAwareMethodMatcher) {
+					if (mm instanceof IntroductionAwareMethodMatcher iamm) {
 						if (hasIntroductions == null) {
 							hasIntroductions = hasMatchingIntroductions(advisors, actualClass);
 						}
-						match = ((IntroductionAwareMethodMatcher) mm).matches(method, actualClass, hasIntroductions);
+						match = iamm.matches(method, actualClass, hasIntroductions);
 					}
 					else {
 						match = mm.matches(method, actualClass);
@@ -109,10 +116,8 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 	 */
 	private static boolean hasMatchingIntroductions(Advisor[] advisors, Class<?> actualClass) {
 		for (Advisor advisor : advisors) {
-			if (advisor instanceof IntroductionAdvisor ia) {
-				if (ia.getClassFilter().matches(actualClass)) {
-					return true;
-				}
+			if (advisor instanceof IntroductionAdvisor ia && ia.getClassFilter().matches(actualClass)) {
+				return true;
 			}
 		}
 		return false;

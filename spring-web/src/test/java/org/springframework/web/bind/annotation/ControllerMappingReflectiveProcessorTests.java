@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Sebastien Deleuze
  */
-public class ControllerMappingReflectiveProcessorTests {
+class ControllerMappingReflectiveProcessorTests {
 
 	private final ControllerMappingReflectiveProcessor processor = new ControllerMappingReflectiveProcessor();
 
@@ -48,7 +48,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Response.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -66,7 +66,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Request.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -84,7 +84,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Request.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -102,7 +102,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Response.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -141,7 +141,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Response.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -167,7 +167,7 @@ public class ControllerMappingReflectiveProcessorTests {
 					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Request.class));
 					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
 							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-							MemberCategory.DECLARED_FIELDS);
+							MemberCategory.ACCESS_DECLARED_FIELDS);
 					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
 							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
 							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
@@ -181,6 +181,24 @@ public class ControllerMappingReflectiveProcessorTests {
 		processor.registerReflectionHints(hints, method);
 		assertThat(hints.typeHints()).singleElement().satisfies(
 				typeHint -> assertThat(typeHint.getType()).isEqualTo(TypeReference.of(SampleController.class)));
+	}
+
+	@Test
+	void registerReflectiveHintsForMethodWithPartToConvert() throws NoSuchMethodException {
+		Method method = SampleController.class.getDeclaredMethod("postPartToConvert", Request.class);
+		processor.registerReflectionHints(hints, method);
+		assertThat(hints.typeHints()).satisfiesExactlyInAnyOrder(
+				typeHint -> assertThat(typeHint.getType()).isEqualTo(TypeReference.of(SampleController.class)),
+				typeHint -> {
+					assertThat(typeHint.getType()).isEqualTo(TypeReference.of(Request.class));
+					assertThat(typeHint.getMemberCategories()).containsExactlyInAnyOrder(
+							MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+							MemberCategory.ACCESS_DECLARED_FIELDS);
+					assertThat(typeHint.methods()).satisfiesExactlyInAnyOrder(
+							hint -> assertThat(hint.getName()).isEqualTo("getMessage"),
+							hint -> assertThat(hint.getName()).isEqualTo("setMessage"));
+				},
+				typeHint -> assertThat(typeHint.getType()).isEqualTo(TypeReference.of(String.class)));
 	}
 
 	static class SampleController {
@@ -217,12 +235,16 @@ public class ControllerMappingReflectiveProcessorTests {
 		}
 
 		@PostMapping
-		void postHttpEntity(HttpEntity<Request>  entity) {
+		void postHttpEntity(HttpEntity<Request> entity) {
 		}
 
 		@PostMapping
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		void postRawHttpEntity(HttpEntity  entity) {
+		@SuppressWarnings("rawtypes")
+		void postRawHttpEntity(HttpEntity entity) {
+		}
+
+		@PostMapping
+		void postPartToConvert(@RequestPart Request request) {
 		}
 
 	}

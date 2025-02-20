@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 package org.springframework.http;
 
 import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.function.BiConsumer;
 
 import org.junit.jupiter.api.Test;
@@ -28,24 +26,20 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.springframework.http.ContentDisposition.parse;
 
 /**
- * Unit tests for {@link ContentDisposition}.
+ * Tests for {@link ContentDisposition}.
  *
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
  */
 class ContentDispositionTests {
 
-	private static final DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME;
 
-
-	@SuppressWarnings("deprecation")
 	@Test
 	void parseFilenameQuoted() {
-		assertThat(parse("form-data; name=\"foo\"; filename=\"foo.txt\"; size=123"))
+		assertThat(parse("form-data; name=\"foo\"; filename=\"foo.txt\""))
 				.isEqualTo(ContentDisposition.formData()
 						.name("foo")
 						.filename("foo.txt")
-						.size(123L)
 						.build());
 	}
 
@@ -169,50 +163,29 @@ class ContentDispositionTests {
 		assertThat(cd.toString()).isEqualTo("form-data; name=\"foo\"; filename=\"bar\\\\\"");
 	}
 
+	@Test
+	void parseWindowsPath() {
+		ContentDisposition cd = ContentDisposition.parse("form-data; name=\"foo\"; filename=\"D:\\foo\\bar.txt\"");
+		assertThat(cd.getName()).isEqualTo("foo");
+		assertThat(cd.getFilename()).isEqualTo("D:\\foo\\bar.txt");
+		assertThat(cd.toString()).isEqualTo("form-data; name=\"foo\"; filename=\"D:\\\\foo\\\\bar.txt\"");
+	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	void parseWithExtraSemicolons() {
-		assertThat(parse("form-data; name=\"foo\";; ; filename=\"foo.txt\"; size=123"))
+		assertThat(parse("form-data; name=\"foo\";; ; filename=\"foo.txt\";"))
 				.isEqualTo(ContentDisposition.formData()
 						.name("foo")
 						.filename("foo.txt")
-						.size(123L)
 						.build());
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
-	void parseDates() {
-		ZonedDateTime creationTime = ZonedDateTime.parse("Mon, 12 Feb 2007 10:15:30 -0500", formatter);
-		ZonedDateTime modificationTime = ZonedDateTime.parse("Tue, 13 Feb 2007 10:15:30 -0500", formatter);
-		ZonedDateTime readTime = ZonedDateTime.parse("Wed, 14 Feb 2007 10:15:30 -0500", formatter);
-
-		assertThat(
-				parse("attachment; " +
-						"creation-date=\"" + creationTime.format(formatter) + "\"; " +
-						"modification-date=\"" + modificationTime.format(formatter) + "\"; " +
-						"read-date=\"" + readTime.format(formatter) + "\"")).isEqualTo(
-				ContentDisposition.attachment()
-						.creationDate(creationTime)
-						.modificationDate(modificationTime)
-						.readDate(readTime)
-						.build());
-	}
-
-	@SuppressWarnings("deprecation")
-	@Test
-	void parseIgnoresInvalidDates() {
-		ZonedDateTime readTime = ZonedDateTime.parse("Wed, 14 Feb 2007 10:15:30 -0500", formatter);
-
-		assertThat(
-				parse("attachment; " +
-						"creation-date=\"-1\"; " +
-						"modification-date=\"-1\"; " +
-						"read-date=\"" + readTime.format(formatter) + "\"")).isEqualTo(
-				ContentDisposition.attachment()
-						.readDate(readTime)
-						.build());
+	void parseAttributesCaseInsensitively() {
+		ContentDisposition cd = ContentDisposition.parse("form-data; Name=\"foo\"; FileName=\"bar.txt\"");
+		assertThat(cd.getName()).isEqualTo("foo");
+		assertThat(cd.getFilename()).isEqualTo("bar.txt");
+		assertThat(cd.toString()).isEqualTo("form-data; name=\"foo\"; filename=\"bar.txt\"");
 	}
 
 	@Test
@@ -230,16 +203,14 @@ class ContentDispositionTests {
 		assertThatIllegalArgumentException().isThrownBy(() -> parse("foo;bar"));
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	void format() {
 		assertThat(
 				ContentDisposition.formData()
 						.name("foo")
 						.filename("foo.txt")
-						.size(123L)
 						.build().toString())
-				.isEqualTo("form-data; name=\"foo\"; filename=\"foo.txt\"; size=123");
+				.isEqualTo("form-data; name=\"foo\"; filename=\"foo.txt\"");
 	}
 
 	@Test
@@ -249,7 +220,9 @@ class ContentDispositionTests {
 						.name("name")
 						.filename("中文.txt", StandardCharsets.UTF_8)
 						.build().toString())
-				.isEqualTo("form-data; name=\"name\"; filename*=UTF-8''%E4%B8%AD%E6%96%87.txt");
+				.isEqualTo("form-data; name=\"name\"; " +
+						"filename=\"=?UTF-8?Q?=E4=B8=AD=E6=96=87.txt?=\"; " +
+						"filename*=UTF-8''%E4%B8%AD%E6%96%87.txt");
 	}
 
 	@Test
@@ -313,6 +286,28 @@ class ContentDispositionTests {
 		ContentDisposition parsed = ContentDisposition.parse(cd.toString());
 		assertThat(parsed).isEqualTo(cd);
 		assertThat(parsed.toString()).isEqualTo(cd.toString());
+	}
+
+	@Test // gh-30252
+	void parseFormattedWithQuestionMark() {
+		String filename = "filename with ?问号.txt";
+		ContentDisposition cd = ContentDisposition.attachment()
+				.filename(filename, StandardCharsets.UTF_8)
+				.build();
+		String result = cd.toString();
+		assertThat(result).isEqualTo("attachment; " +
+						"filename=\"=?UTF-8?Q?filename_with_=3F=E9=97=AE=E5=8F=B7.txt?=\"; " +
+						"filename*=UTF-8''filename%20with%20%3F%E9%97%AE%E5%8F%B7.txt");
+
+		String[] parts = result.split("; ");
+
+		String quotedPrintableFilename = parts[0] + "; " + parts[1];
+		assertThat(ContentDisposition.parse(quotedPrintableFilename).getFilename())
+				.isEqualTo(filename);
+
+		String rfc5987Filename = parts[0] + "; " + parts[2];
+		assertThat(ContentDisposition.parse(rfc5987Filename).getFilename())
+				.isEqualTo(filename);
 	}
 
 }

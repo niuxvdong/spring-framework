@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -115,7 +115,7 @@ class AotServicesTests {
 		AotServices<?> loaded = AotServices
 				.factories(new TestSpringFactoriesClassLoader("aot-services.factories"))
 				.load(TestService.class);
-		assertThat(loaded.iterator().next()).isInstanceOf(TestServiceImpl.class);
+		assertThat(loaded).singleElement().isInstanceOf(TestServiceImpl.class);
 	}
 
 	@Test
@@ -175,14 +175,14 @@ class AotServicesTests {
 		AotServices<TestService> loaded = AotServices.factoriesAndBeans(loader, beanFactory).load(TestService.class);
 		assertThat(loaded.getSource(loaded.asList().get(0))).isEqualTo(Source.SPRING_FACTORIES_LOADER);
 		assertThat(loaded.getSource(loaded.asList().get(1))).isEqualTo(Source.BEAN_FACTORY);
-		TestService missing = mock(TestService.class);
+		TestService missing = mock();
 		assertThatIllegalStateException().isThrownBy(()->loaded.getSource(missing));
 	}
 
 	@Test
 	void getSourceWhenMissingThrowsException() {
 		AotServices<TestService> loaded = AotServices.factories().load(TestService.class);
-		TestService missing = mock(TestService.class);
+		TestService missing = mock();
 		assertThatIllegalStateException().isThrownBy(()->loaded.getSource(missing));
 	}
 

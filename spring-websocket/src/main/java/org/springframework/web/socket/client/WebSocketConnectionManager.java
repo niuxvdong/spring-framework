@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
 
 package org.springframework.web.socket.client;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.context.Lifecycle;
 import org.springframework.http.HttpHeaders;
-import org.springframework.lang.Nullable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.WebSocketSession;
@@ -42,16 +44,29 @@ public class WebSocketConnectionManager extends ConnectionManagerSupport {
 
 	private final WebSocketHandler webSocketHandler;
 
-	@Nullable
-	private WebSocketSession webSocketSession;
+	private @Nullable WebSocketSession webSocketSession;
 
 	private final WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
 
 
+	/**
+	 * Constructor with the client to use and a handler to handle messages with.
+	 */
 	public WebSocketConnectionManager(WebSocketClient client,
-			WebSocketHandler webSocketHandler, String uriTemplate, Object... uriVariables) {
+			WebSocketHandler webSocketHandler, String uriTemplate, @Nullable Object... uriVariables) {
 
 		super(uriTemplate, uriVariables);
+		this.client = client;
+		this.webSocketHandler = decorateWebSocketHandler(webSocketHandler);
+	}
+
+	/**
+	 * Variant of {@link #WebSocketConnectionManager(WebSocketClient, WebSocketHandler, String, Object...)}
+	 * with a prepared {@link URI}.
+	 * @since 6.0.5
+	 */
+	public WebSocketConnectionManager(WebSocketClient client, WebSocketHandler webSocketHandler, URI uri) {
+		super(uri);
 		this.client = client;
 		this.webSocketHandler = decorateWebSocketHandler(webSocketHandler);
 	}
@@ -84,8 +99,7 @@ public class WebSocketConnectionManager extends ConnectionManagerSupport {
 	/**
 	 * Return the configured origin.
 	 */
-	@Nullable
-	public String getOrigin() {
+	public @Nullable String getOrigin() {
 		return this.headers.getOrigin();
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Arjen Poutsma
  * @author Sam Brannen
  */
+@SuppressWarnings("deprecation")
 class ServerHttpsRequestIntegrationTests {
 
 	private final HttpServer server = new ReactorHttpsServer();
@@ -85,8 +86,8 @@ class ServerHttpsRequestIntegrationTests {
 	}
 
 	@Test
-	void checkUri() throws Exception {
-		URI url = new URI("https://localhost:" + port + "/foo?param=bar");
+	void checkUri() {
+		URI url = URI.create("https://localhost:" + port + "/foo?param=bar");
 		RequestEntity<Void> request = RequestEntity.post(url).build();
 		ResponseEntity<Void> response = this.restTemplate.exchange(request, Void.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

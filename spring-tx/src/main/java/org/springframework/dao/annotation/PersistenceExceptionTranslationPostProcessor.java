@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import org.springframework.util.Assert;
  * PersistenceExceptionTranslator} interface, which are subsequently asked to translate
  * candidate exceptions.
  *
- * <p>All of Spring's applicable resource factories (e.g.
+ * <p>All of Spring's applicable resource factories (for example,
  * {@link org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean})
  * implement the {@code PersistenceExceptionTranslator} interface out of the box.
  * As a consequence, all that is usually needed to enable automatic exception
@@ -82,12 +82,11 @@ public class PersistenceExceptionTranslationPostProcessor extends AbstractBeanFa
 	public void setBeanFactory(BeanFactory beanFactory) {
 		super.setBeanFactory(beanFactory);
 
-		if (!(beanFactory instanceof ListableBeanFactory)) {
+		if (!(beanFactory instanceof ListableBeanFactory lbf)) {
 			throw new IllegalArgumentException(
 					"Cannot use PersistenceExceptionTranslator autodetection without ListableBeanFactory");
 		}
-		this.advisor = new PersistenceExceptionTranslationAdvisor(
-				(ListableBeanFactory) beanFactory, this.repositoryAnnotationType);
+		this.advisor = new PersistenceExceptionTranslationAdvisor(lbf, this.repositoryAnnotationType);
 	}
 
 }

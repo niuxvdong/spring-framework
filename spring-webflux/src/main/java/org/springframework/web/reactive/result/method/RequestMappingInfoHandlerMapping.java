@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import org.springframework.http.HttpHeaders;
@@ -35,10 +36,11 @@ import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.observation.ServerRequestObservationContext;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.filter.reactive.ServerHttpObservationFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.result.condition.NameValueExpression;
@@ -86,7 +88,7 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 	 * @return an info in case of a match; or {@code null} otherwise.
 	 */
 	@Override
-	protected RequestMappingInfo getMatchingMapping(RequestMappingInfo info, ServerWebExchange exchange) {
+	protected @Nullable RequestMappingInfo getMatchingMapping(RequestMappingInfo info, ServerWebExchange exchange) {
 		return info.getMatchingCondition(exchange);
 	}
 
@@ -112,6 +114,7 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 	 * @see HandlerMapping#PRODUCIBLE_MEDIA_TYPES_ATTRIBUTE
 	 */
 	@Override
+	@SuppressWarnings("removal")
 	protected void handleMatch(RequestMappingInfo info, HandlerMethod handlerMethod,
 			ServerWebExchange exchange) {
 
@@ -140,7 +143,7 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 
 		exchange.getAttributes().put(BEST_MATCHING_HANDLER_ATTRIBUTE, handlerMethod);
 		exchange.getAttributes().put(BEST_MATCHING_PATTERN_ATTRIBUTE, bestPattern);
-		ServerHttpObservationFilter.findObservationContext(exchange)
+		ServerRequestObservationContext.findCurrent(exchange.getAttributes())
 				.ifPresent(context -> context.setPathPattern(bestPattern.toString()));
 		exchange.getAttributes().put(URI_TEMPLATE_VARIABLES_ATTRIBUTE, uriVariables);
 		exchange.getAttributes().put(MATRIX_VARIABLES_ATTRIBUTE, matrixVariables);
@@ -166,11 +169,14 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 	 * method but not by query parameter conditions
 	 */
 	@Override
-	protected HandlerMethod handleNoMatch(Set<RequestMappingInfo> infos,
+	protected @Nullable HandlerMethod handleNoMatch(Set<RequestMappingInfo> infos,
 			ServerWebExchange exchange) throws Exception {
 
-		PartialMatchHelper helper = new PartialMatchHelper(infos, exchange);
+		if (CollectionUtils.isEmpty(infos)) {
+			return null;
+		}
 
+		PartialMatchHelper helper = new PartialMatchHelper(infos, exchange);
 		if (helper.isEmpty()) {
 			return null;
 		}
@@ -195,7 +201,7 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 				contentType = request.getHeaders().getContentType();
 			}
 			catch (InvalidMediaTypeException ex) {
-				throw new UnsupportedMediaTypeStatusException(ex.getMessage());
+				throw new UnsupportedMediaTypeStatusException(ex.getMessage(), new ArrayList<>(mediaTypes));
 			}
 			throw new UnsupportedMediaTypeStatusException(
 					contentType, new ArrayList<>(mediaTypes), exchange.getRequest().getMethod());
@@ -219,17 +225,18 @@ public abstract class RequestMappingInfoHandlerMapping extends AbstractHandlerMe
 	/**
 	 * Aggregate all partial matches and expose methods checking across them.
 	 */
-	private static class PartialMatchHelper {
+	private static final class PartialMatchHelper {
 
 		private final List<PartialMatch> partialMatches = new ArrayList<>();
 
 
-		public PartialMatchHelper(Set<RequestMappingInfo> infos, ServerWebExchange exchange) {
-			this.partialMatches.addAll(infos.stream()
-					.filter(info -> info.getPatternsCondition().getMatchingCondition(exchange) != null)
-					.map(info -> new PartialMatch(info, exchange)).toList());
+		PartialMatchHelper(Set<RequestMappingInfo> infos, ServerWebExchange exchange) {
+			for (RequestMappingInfo info : infos) {
+				if (info.getPatternsCondition().getMatchingCondition(exchange) != null) {
+					this.partialMatches.add(new PartialMatch(info, exchange));
+				}
+			}
 		}
-
 
 		/**
 		 * Whether there are any partial matches.

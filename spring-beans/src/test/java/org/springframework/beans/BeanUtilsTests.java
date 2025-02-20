@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -41,9 +43,10 @@ import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.beans.testfixture.beans.DerivedTestBean;
 import org.springframework.beans.testfixture.beans.ITestBean;
 import org.springframework.beans.testfixture.beans.TestBean;
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceEditor;
-import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -51,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 /**
- * Unit tests for {@link BeanUtils}.
+ * Tests for {@link BeanUtils}.
  *
  * @author Juergen Hoeller
  * @author Rob Harrop
@@ -135,7 +138,7 @@ class BeanUtilsTests {
 		PropertyDescriptor[] actual = Introspector.getBeanInfo(TestBean.class).getPropertyDescriptors();
 		PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(TestBean.class);
 		assertThat(descriptors).as("Descriptors should not be null").isNotNull();
-		assertThat(descriptors.length).as("Invalid number of descriptors returned").isEqualTo(actual.length);
+		assertThat(descriptors).as("Invalid number of descriptors returned").hasSameSizeAs(actual);
 	}
 
 	@Test
@@ -144,7 +147,7 @@ class BeanUtilsTests {
 		for (PropertyDescriptor descriptor : descriptors) {
 			if ("containedBeans".equals(descriptor.getName())) {
 				assertThat(descriptor.getPropertyType().isArray()).as("Property should be an array").isTrue();
-				assertThat(ContainedBean.class).isEqualTo(descriptor.getPropertyType().getComponentType());
+				assertThat(ContainedBean.class).isEqualTo(descriptor.getPropertyType().componentType());
 			}
 		}
 	}
@@ -161,13 +164,13 @@ class BeanUtilsTests {
 		tb.setAge(32);
 		tb.setTouchy("touchy");
 		TestBean tb2 = new TestBean();
-		assertThat(tb2.getName() == null).as("Name empty").isTrue();
-		assertThat(tb2.getAge() == 0).as("Age empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy empty").isTrue();
+		assertThat(tb2.getName()).as("Name empty").isNull();
+		assertThat(tb2.getAge()).as("Age empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy empty").isNull();
 		BeanUtils.copyProperties(tb, tb2);
-		assertThat(tb2.getName().equals(tb.getName())).as("Name copied").isTrue();
-		assertThat(tb2.getAge() == tb.getAge()).as("Age copied").isTrue();
-		assertThat(tb2.getTouchy().equals(tb.getTouchy())).as("Touchy copied").isTrue();
+		assertThat(tb2.getName()).as("Name copied").isEqualTo(tb.getName());
+		assertThat(tb2.getAge()).as("Age copied").isEqualTo(tb.getAge());
+		assertThat(tb2.getTouchy()).as("Touchy copied").isEqualTo(tb.getTouchy());
 	}
 
 	@Test
@@ -177,13 +180,13 @@ class BeanUtilsTests {
 		tb.setAge(32);
 		tb.setTouchy("touchy");
 		TestBean tb2 = new TestBean();
-		assertThat(tb2.getName() == null).as("Name empty").isTrue();
-		assertThat(tb2.getAge() == 0).as("Age empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy empty").isTrue();
+		assertThat(tb2.getName()).as("Name empty").isNull();
+		assertThat(tb2.getAge()).as("Age empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy empty").isNull();
 		BeanUtils.copyProperties(tb, tb2);
-		assertThat(tb2.getName().equals(tb.getName())).as("Name copied").isTrue();
-		assertThat(tb2.getAge() == tb.getAge()).as("Age copied").isTrue();
-		assertThat(tb2.getTouchy().equals(tb.getTouchy())).as("Touchy copied").isTrue();
+		assertThat(tb2.getName()).as("Name copied").isEqualTo(tb.getName());
+		assertThat(tb2.getAge()).as("Age copied").isEqualTo(tb.getAge());
+		assertThat(tb2.getTouchy()).as("Touchy copied").isEqualTo(tb.getTouchy());
 	}
 
 	@Test
@@ -193,13 +196,13 @@ class BeanUtilsTests {
 		tb.setAge(32);
 		tb.setTouchy("touchy");
 		DerivedTestBean tb2 = new DerivedTestBean();
-		assertThat(tb2.getName() == null).as("Name empty").isTrue();
-		assertThat(tb2.getAge() == 0).as("Age empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy empty").isTrue();
+		assertThat(tb2.getName()).as("Name empty").isNull();
+		assertThat(tb2.getAge()).as("Age empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy empty").isNull();
 		BeanUtils.copyProperties(tb, tb2);
-		assertThat(tb2.getName().equals(tb.getName())).as("Name copied").isTrue();
-		assertThat(tb2.getAge() == tb.getAge()).as("Age copied").isTrue();
-		assertThat(tb2.getTouchy().equals(tb.getTouchy())).as("Touchy copied").isTrue();
+		assertThat(tb2.getName()).as("Name copied").isEqualTo(tb.getName());
+		assertThat(tb2.getAge()).as("Age copied").isEqualTo(tb.getAge());
+		assertThat(tb2.getTouchy()).as("Touchy copied").isEqualTo(tb.getTouchy());
 	}
 
 	/**
@@ -321,12 +324,13 @@ class BeanUtilsTests {
 		Order original = new Order("test", List.of("foo", "bar"));
 
 		// Create a Proxy that loses the generic type information for the getLineItems() method.
-		OrderSummary proxy = proxyOrder(original);
+		OrderSummary proxy = (OrderSummary) Proxy.newProxyInstance(getClass().getClassLoader(),
+				new Class<?>[] {OrderSummary.class}, new OrderInvocationHandler(original));
 		assertThat(OrderSummary.class.getDeclaredMethod("getLineItems").toGenericString())
-			.contains("java.util.List<java.lang.String>");
+				.contains("java.util.List<java.lang.String>");
 		assertThat(proxy.getClass().getDeclaredMethod("getLineItems").toGenericString())
-			.contains("java.util.List")
-			.doesNotContain("<java.lang.String>");
+				.contains("java.util.List")
+				.doesNotContain("<java.lang.String>");
 
 		// Ensure that our custom Proxy works as expected.
 		assertThat(proxy.getId()).isEqualTo("test");
@@ -339,40 +343,57 @@ class BeanUtilsTests {
 		assertThat(target.getLineItems()).containsExactly("foo", "bar");
 	}
 
+	@Test  // gh-32888
+	public void copyPropertiesWithGenericCglibClass() {
+		Enhancer enhancer = new Enhancer();
+		enhancer.setSuperclass(User.class);
+		enhancer.setCallback((MethodInterceptor) (obj, method, args, proxy) -> proxy.invokeSuper(obj, args));
+		User user = (User) enhancer.create();
+		user.setId(1);
+		user.setName("proxy");
+		user.setAddress("addr");
+
+		User target = new User();
+		BeanUtils.copyProperties(user, target);
+		assertThat(target.getId()).isEqualTo(user.getId());
+		assertThat(target.getName()).isEqualTo(user.getName());
+		assertThat(target.getAddress()).isEqualTo(user.getAddress());
+	}
+
 	@Test
 	void copyPropertiesWithEditable() throws Exception {
 		TestBean tb = new TestBean();
-		assertThat(tb.getName() == null).as("Name empty").isTrue();
+		assertThat(tb.getName()).as("Name empty").isNull();
 		tb.setAge(32);
 		tb.setTouchy("bla");
 		TestBean tb2 = new TestBean();
 		tb2.setName("rod");
-		assertThat(tb2.getAge() == 0).as("Age empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy empty").isTrue();
+		assertThat(tb2.getAge()).as("Age empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy empty").isNull();
 
 		// "touchy" should not be copied: it's not defined in ITestBean
 		BeanUtils.copyProperties(tb, tb2, ITestBean.class);
-		assertThat(tb2.getName() == null).as("Name copied").isTrue();
-		assertThat(tb2.getAge() == 32).as("Age copied").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy still empty").isTrue();
+		assertThat(tb2.getName()).as("Name copied").isNull();
+		assertThat(tb2.getAge()).as("Age copied").isEqualTo(32);
+		assertThat(tb2.getTouchy()).as("Touchy still empty").isNull();
 	}
 
 	@Test
 	void copyPropertiesWithIgnore() throws Exception {
 		TestBean tb = new TestBean();
-		assertThat(tb.getName() == null).as("Name empty").isTrue();
+		assertThat(tb.getName()).as("Name empty").isNull();
 		tb.setAge(32);
 		tb.setTouchy("bla");
 		TestBean tb2 = new TestBean();
 		tb2.setName("rod");
-		assertThat(tb2.getAge() == 0).as("Age empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy empty").isTrue();
+		assertThat(tb2.getAge()).as("Age empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy empty").isNull();
 
 		// "spouse", "touchy", "age" should not be copied
 		BeanUtils.copyProperties(tb, tb2, "spouse", "touchy", "age");
-		assertThat(tb2.getName() == null).as("Name copied").isTrue();
-		assertThat(tb2.getAge() == 0).as("Age still empty").isTrue();
-		assertThat(tb2.getTouchy() == null).as("Touchy still empty").isTrue();
+		assertThat(tb2.getName()).as("Name copied").isNull();
+		assertThat(tb2.getAge()).as("Age still empty").isEqualTo(0);
+		assertThat(tb2.getTouchy()).as("Touchy still empty").isNull();
 	}
 
 	@Test
@@ -381,7 +402,7 @@ class BeanUtilsTests {
 		source.setName("name");
 		TestBean target = new TestBean();
 		BeanUtils.copyProperties(source, target, "specialProperty");
-		assertThat("name").isEqualTo(target.getName());
+		assertThat(target.getName()).isEqualTo("name");
 	}
 
 	@Test
@@ -453,8 +474,8 @@ class BeanUtilsTests {
 		assertSignatureEquals(desiredMethod, "doSomethingWithAMultiDimensionalArray(java.lang.String[][])");
 	}
 
-	@Test
-	void spr6063() {
+	@Test  // gh-10731
+	void propertyDescriptorShouldMatchWithCachedDescriptors() {
 		PropertyDescriptor[] descrs = BeanUtils.getPropertyDescriptors(Bean.class);
 
 		PropertyDescriptor keyDescr = BeanUtils.getPropertyDescriptor(Bean.class, "value");
@@ -470,7 +491,8 @@ class BeanUtilsTests {
 	@ValueSource(classes = {
 		boolean.class, char.class, byte.class, short.class, int.class, long.class, float.class, double.class,
 		Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
-		DayOfWeek.class, String.class, LocalDateTime.class, Date.class, URI.class, URL.class, Locale.class, Class.class
+		DayOfWeek.class, String.class, LocalDateTime.class, Date.class, UUID.class, URI.class, URL.class,
+		Locale.class, Class.class
 	})
 	void isSimpleValueType(Class<?> type) {
 		assertThat(BeanUtils.isSimpleValueType(type)).as("Type [" + type.getName() + "] should be a simple value type").isTrue();
@@ -486,8 +508,8 @@ class BeanUtilsTests {
 	@ValueSource(classes = {
 		boolean.class, char.class, byte.class, short.class, int.class, long.class, float.class, double.class,
 		Boolean.class, Character.class, Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class,
-		DayOfWeek.class, String.class, LocalDateTime.class, Date.class, URI.class, URL.class, Locale.class, Class.class,
-		boolean[].class, Boolean[].class, LocalDateTime[].class, Date[].class
+		DayOfWeek.class, String.class, LocalDateTime.class, Date.class, UUID.class, URI.class, URL.class,
+		Locale.class, Class.class, boolean[].class, Boolean[].class, LocalDateTime[].class, Date[].class
 	})
 	void isSimpleProperty(Class<?> type) {
 		assertThat(BeanUtils.isSimpleProperty(type)).as("Type [" + type.getName() + "] should be a simple property").isTrue();
@@ -499,10 +521,36 @@ class BeanUtilsTests {
 		assertThat(BeanUtils.isSimpleProperty(type)).as("Type [" + type.getName() + "] should not be a simple property").isFalse();
 	}
 
+	@Test
+	void resolveMultipleRecordPublicConstructor() throws NoSuchMethodException {
+		assertThat(BeanUtils.getResolvableConstructor(RecordWithMultiplePublicConstructors.class))
+				.isEqualTo(RecordWithMultiplePublicConstructors.class.getDeclaredConstructor(String.class, String.class));
+	}
+
+	@Test
+	void resolveMultipleRecordePackagePrivateConstructor() throws NoSuchMethodException {
+		assertThat(BeanUtils.getResolvableConstructor(RecordWithMultiplePackagePrivateConstructors.class))
+				.isEqualTo(RecordWithMultiplePackagePrivateConstructors.class.getDeclaredConstructor(String.class, String.class));
+	}
+
 	private void assertSignatureEquals(Method desiredMethod, String signature) {
 		assertThat(BeanUtils.resolveSignature(signature, MethodSignatureBean.class)).isEqualTo(desiredMethod);
 	}
 
+
+	public record RecordWithMultiplePublicConstructors(String value, String name) {
+		@SuppressWarnings("unused")
+		public RecordWithMultiplePublicConstructors(String value) {
+			this(value, "default value");
+		}
+	}
+
+	record RecordWithMultiplePackagePrivateConstructors(String value, String name) {
+		@SuppressWarnings("unused")
+		RecordWithMultiplePackagePrivateConstructors(String value) {
+			this(value, "default value");
+		}
+	}
 
 	@SuppressWarnings("unused")
 	private static class NumberHolder {
@@ -518,6 +566,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	@SuppressWarnings("unused")
 	private static class IntegerHolder {
 
@@ -531,6 +580,7 @@ class BeanUtilsTests {
 			this.number = number;
 		}
 	}
+
 
 	@SuppressWarnings("unused")
 	private static class WildcardListHolder1 {
@@ -546,6 +596,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	@SuppressWarnings("unused")
 	private static class WildcardListHolder2 {
 
@@ -559,6 +610,7 @@ class BeanUtilsTests {
 			this.list = list;
 		}
 	}
+
 
 	@SuppressWarnings("unused")
 	private static class NumberUpperBoundedWildcardListHolder {
@@ -574,6 +626,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	@SuppressWarnings("unused")
 	private static class NumberListHolder {
 
@@ -587,6 +640,7 @@ class BeanUtilsTests {
 			this.list = list;
 		}
 	}
+
 
 	@SuppressWarnings("unused")
 	private static class IntegerListHolder1 {
@@ -602,6 +656,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	@SuppressWarnings("unused")
 	private static class IntegerListHolder2 {
 
@@ -615,6 +670,7 @@ class BeanUtilsTests {
 			this.list = list;
 		}
 	}
+
 
 	@SuppressWarnings("unused")
 	private static class LongListHolder {
@@ -796,6 +852,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	private static class BeanWithNullableTypes {
 
 		private Integer counter;
@@ -811,13 +868,11 @@ class BeanUtilsTests {
 			this.value = value;
 		}
 
-		@Nullable
-		public Integer getCounter() {
+		public @Nullable Integer getCounter() {
 			return counter;
 		}
 
-		@Nullable
-		public Boolean isFlag() {
+		public @Nullable Boolean isFlag() {
 			return flag;
 		}
 
@@ -825,6 +880,7 @@ class BeanUtilsTests {
 			return value;
 		}
 	}
+
 
 	private static class BeanWithPrimitiveTypes {
 
@@ -837,7 +893,6 @@ class BeanUtilsTests {
 		private double doubleCount;
 		private char character;
 		private String text;
-
 
 		@SuppressWarnings("unused")
 		public BeanWithPrimitiveTypes(boolean flag, byte byteCount, short shortCount, int intCount, long longCount,
@@ -889,8 +944,8 @@ class BeanUtilsTests {
 		public String getText() {
 			return text;
 		}
-
 	}
+
 
 	private static class PrivateBeanWithPrivateConstructor {
 
@@ -898,12 +953,13 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	@SuppressWarnings("unused")
 	private static class Order {
 
 		private String id;
-		private List<String> lineItems;
 
+		private List<String> lineItems;
 
 		Order() {
 		}
@@ -935,6 +991,7 @@ class BeanUtilsTests {
 		}
 	}
 
+
 	private interface OrderSummary {
 
 		String getId();
@@ -943,16 +1000,9 @@ class BeanUtilsTests {
 	}
 
 
-	private OrderSummary proxyOrder(Order order) {
-		return (OrderSummary) Proxy.newProxyInstance(getClass().getClassLoader(),
-			new Class<?>[] { OrderSummary.class }, new OrderInvocationHandler(order));
-	}
-
-
 	private static class OrderInvocationHandler implements InvocationHandler {
 
 		private final Order order;
-
 
 		OrderInvocationHandler(Order order) {
 			this.order = order;
@@ -968,6 +1018,48 @@ class BeanUtilsTests {
 			catch (InvocationTargetException ex) {
 				throw ex.getTargetException();
 			}
+		}
+	}
+
+
+	private static class GenericBaseModel<T> {
+
+		private T id;
+
+		private String name;
+
+		public T getId() {
+			return id;
+		}
+
+		public void setId(T id) {
+			this.id = id;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+	}
+
+
+	private static class User extends GenericBaseModel<Integer> {
+
+		private String address;
+
+		public User() {
+			super();
+		}
+
+		public String getAddress() {
+			return address;
+		}
+
+		public void setAddress(String address) {
+			this.address = address;
 		}
 	}
 

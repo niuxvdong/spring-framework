@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.core.type;
 
 import java.net.URL;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.core.io.Resource;
@@ -31,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.core.testfixture.TestGroup.LONG_RUNNING;
 
 /**
- * Unit tests for checking the behaviour of {@link CachingMetadataReaderFactory} under
+ * Tests for checking the behaviour of {@link CachingMetadataReaderFactory} under
  * load. If the cache is not controlled, this test should fail with an out of memory
  * exception around entry 5k.
  *
@@ -56,7 +57,7 @@ class CachingMetadataReaderLeakTests {
 			Resource resource = new UrlResource(url) {
 
 				@Override
-				public boolean equals(Object obj) {
+				public boolean equals(@Nullable Object obj) {
 					return (obj == this);
 				}
 

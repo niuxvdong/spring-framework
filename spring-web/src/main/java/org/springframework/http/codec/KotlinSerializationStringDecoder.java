@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,21 +21,26 @@ import java.util.Map;
 
 import kotlinx.serialization.KSerializer;
 import kotlinx.serialization.StringFormat;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
+import org.springframework.core.codec.CodecException;
 import org.springframework.core.codec.Decoder;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.codec.StringDecoder;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 
 /**
  * Abstract base class for {@link Decoder} implementations that defer to Kotlin
  * {@linkplain StringFormat string serializers}.
+ *
+ * <p>As of Spring Framework 7.0,
+ * <a href="https://github.com/Kotlin/kotlinx.serialization/blob/master/docs/polymorphism.md#open-polymorphism">open polymorphism</a>
+ * is supported.
  *
  * @author Sebastien Deleuze
  * @author Iain Henderson
@@ -60,7 +65,7 @@ public abstract class KotlinSerializationStringDecoder<T extends StringFormat> e
 	 * decoding to a single {@code DataBuffer},
 	 * {@link java.nio.ByteBuffer ByteBuffer}, {@code byte[]},
 	 * {@link org.springframework.core.io.Resource Resource}, {@code String}, etc.
-	 * It can also occur when splitting the input stream, e.g. delimited text,
+	 * It can also occur when splitting the input stream, for example, delimited text,
 	 * in which case the limit applies to data buffered between delimiters.
 	 * <p>By default this is set to 256K.
 	 * @param byteCount the max number of bytes to buffer, or -1 for unlimited
@@ -93,15 +98,28 @@ public abstract class KotlinSerializationStringDecoder<T extends StringFormat> e
 
 	@Override
 	public Flux<Object> decode(Publisher<DataBuffer> inputStream, ResolvableType elementType,
-			@Nullable MimeType mimeType,
-			@Nullable Map<String, Object> hints) {
-		return Flux.error(new UnsupportedOperationException());
+			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
+		return Flux.defer(() -> {
+			KSerializer<Object> serializer = serializer(elementType);
+			if (serializer == null) {
+				return Mono.error(new DecodingException("Could not find KSerializer for " + elementType));
+			}
+			return this.stringDecoder
+					.decode(inputStream, elementType, mimeType, hints)
+					.handle((string, sink) -> {
+						try {
+							sink.next(format().decodeFromString(serializer, string));
+						}
+						catch (IllegalArgumentException ex) {
+							sink.error(processException(ex));
+						}
+					});
+		});
 	}
 
 	@Override
 	public Mono<Object> decodeToMono(Publisher<DataBuffer> inputStream, ResolvableType elementType,
-										@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
-
+			@Nullable MimeType mimeType, @Nullable Map<String, Object> hints) {
 		return Mono.defer(() -> {
 			KSerializer<Object> serializer = serializer(elementType);
 			if (serializer == null) {
@@ -109,8 +127,20 @@ public abstract class KotlinSerializationStringDecoder<T extends StringFormat> e
 			}
 			return this.stringDecoder
 					.decodeToMono(inputStream, elementType, mimeType, hints)
-					.map(string -> format().decodeFromString(serializer, string));
+					.handle((string, sink) -> {
+						try {
+							sink.next(format().decodeFromString(serializer, string));
+							sink.complete();
+						}
+						catch (IllegalArgumentException ex) {
+							sink.error(processException(ex));
+						}
+					});
 		});
+	}
+
+	private CodecException processException(IllegalArgumentException ex) {
+		return new DecodingException("Decoding error: " + ex.getMessage(), ex);
 	}
 
 }

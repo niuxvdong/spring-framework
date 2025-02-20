@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,8 +140,8 @@ class SockJsServiceTests extends AbstractHttpRequestTests {
 
 	@Test  // SPR-11919
 	void handleInfoGetWildflyNPE() throws IOException {
-		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
-		ServletOutputStream ous = mock(ServletOutputStream.class);
+		HttpServletResponse mockResponse = mock();
+		ServletOutputStream ous = mock();
 		given(mockResponse.getHeaders(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN)).willThrow(NullPointerException.class);
 		given(mockResponse.getOutputStream()).willReturn(ous);
 		this.response = new ServletServerHttpResponse(mockResponse);
@@ -192,7 +192,7 @@ class SockJsServiceTests extends AbstractHttpRequestTests {
 		this.servletRequest.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Last-Modified");
 		resetResponseAndHandleRequest("OPTIONS", "/echo/info", HttpStatus.FORBIDDEN);
 		CorsConfiguration corsConfiguration = this.service.getCorsConfiguration(this.servletRequest);
-		assertThat(corsConfiguration.getAllowedOrigins().isEmpty()).isTrue();
+		assertThat(corsConfiguration.getAllowedOrigins()).isEmpty();
 
 		this.service.setAllowedOrigins(Collections.singletonList("https://mydomain1.example"));
 		resetResponseAndHandleRequest("OPTIONS", "/echo/info", HttpStatus.FORBIDDEN);
@@ -227,14 +227,14 @@ class SockJsServiceTests extends AbstractHttpRequestTests {
 
 		assertThat(this.servletResponse.getContentType()).isEqualTo("text/html;charset=UTF-8");
 		assertThat(this.servletResponse.getContentAsString()).startsWith("<!DOCTYPE html>\n");
-		assertThat(this.servletResponse.getContentLength()).isEqualTo(509);
+		assertThat(this.servletResponse.getContentLength()).isEqualTo(521);
 		assertThat(this.response.getHeaders().getCacheControl()).isEqualTo("no-store, no-cache, must-revalidate, max-age=0");
-		assertThat(this.response.getHeaders().getETag()).isEqualTo("\"0a909c1cfbe0deb55f142095f4149eed4\"");
+		assertThat(this.response.getHeaders().getETag()).isEqualTo("\"0d5374d44ec6545f2deae3a688b7ec9a8\"");
 	}
 
 	@Test
 	void handleIframeRequestNotModified() {
-		this.servletRequest.addHeader("If-None-Match", "\"0a909c1cfbe0deb55f142095f4149eed4\"");
+		this.servletRequest.addHeader("If-None-Match", "\"0d5374d44ec6545f2deae3a688b7ec9a8\"");
 		resetResponseAndHandleRequest("GET", "/echo/iframe.html", HttpStatus.NOT_MODIFIED);
 	}
 
@@ -281,7 +281,7 @@ class SockJsServiceTests extends AbstractHttpRequestTests {
 
 		@Override
 		protected void handleRawWebSocketRequest(ServerHttpRequest req, ServerHttpResponse res,
-				WebSocketHandler handler) throws IOException {
+				WebSocketHandler handler) {
 		}
 
 		@Override

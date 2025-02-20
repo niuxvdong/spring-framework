@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
+
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -68,7 +69,7 @@ abstract class PropertyDescriptorUtils {
 				setter = true;
 				nameIndex = 3;
 			}
-			else if (methodName.startsWith("get") && method.getParameterCount() == 0 && method.getReturnType() != Void.TYPE) {
+			else if (methodName.startsWith("get") && method.getParameterCount() == 0 && method.getReturnType() != void.class) {
 				setter = false;
 				nameIndex = 3;
 			}
@@ -88,8 +89,9 @@ abstract class PropertyDescriptorUtils {
 			BasicPropertyDescriptor pd = pdMap.get(propertyName);
 			if (pd != null) {
 				if (setter) {
-					if (pd.getWriteMethod() == null ||
-							pd.getWriteMethod().getParameterTypes()[0].isAssignableFrom(method.getParameterTypes()[0])) {
+					Method writeMethod = pd.getWriteMethod();
+					if (writeMethod == null ||
+							writeMethod.getParameterTypes()[0].isAssignableFrom(method.getParameterTypes()[0])) {
 						pd.setWriteMethod(method);
 					}
 					else {
@@ -97,8 +99,9 @@ abstract class PropertyDescriptorUtils {
 					}
 				}
 				else {
-					if (pd.getReadMethod() == null ||
-							(pd.getReadMethod().getReturnType() == method.getReturnType() && method.getName().startsWith("is"))) {
+					Method readMethod = pd.getReadMethod();
+					if (readMethod == null ||
+							(readMethod.getReturnType() == method.getReturnType() && method.getName().startsWith("is"))) {
 						pd.setReadMethod(method);
 					}
 				}
@@ -139,8 +142,7 @@ abstract class PropertyDescriptorUtils {
 	/**
 	 * See {@link java.beans.PropertyDescriptor#findPropertyType}.
 	 */
-	@Nullable
-	public static Class<?> findPropertyType(@Nullable Method readMethod, @Nullable Method writeMethod)
+	public static @Nullable Class<?> findPropertyType(@Nullable Method readMethod, @Nullable Method writeMethod)
 			throws IntrospectionException {
 
 		Class<?> propertyType = null;
@@ -150,7 +152,7 @@ abstract class PropertyDescriptorUtils {
 				throw new IntrospectionException("Bad read method arg count: " + readMethod);
 			}
 			propertyType = readMethod.getReturnType();
-			if (propertyType == Void.TYPE) {
+			if (propertyType == void.class) {
 				throw new IntrospectionException("Read method returns void: " + readMethod);
 			}
 		}
@@ -184,8 +186,7 @@ abstract class PropertyDescriptorUtils {
 	/**
 	 * See {@link java.beans.IndexedPropertyDescriptor#findIndexedPropertyType}.
 	 */
-	@Nullable
-	public static Class<?> findIndexedPropertyType(String name, @Nullable Class<?> propertyType,
+	public static @Nullable Class<?> findIndexedPropertyType(String name, @Nullable Class<?> propertyType,
 			@Nullable Method indexedReadMethod, @Nullable Method indexedWriteMethod) throws IntrospectionException {
 
 		Class<?> indexedPropertyType = null;
@@ -195,11 +196,11 @@ abstract class PropertyDescriptorUtils {
 			if (params.length != 1) {
 				throw new IntrospectionException("Bad indexed read method arg count: " + indexedReadMethod);
 			}
-			if (params[0] != Integer.TYPE) {
+			if (params[0] != int.class) {
 				throw new IntrospectionException("Non int index to indexed read method: " + indexedReadMethod);
 			}
 			indexedPropertyType = indexedReadMethod.getReturnType();
-			if (indexedPropertyType == Void.TYPE) {
+			if (indexedPropertyType == void.class) {
 				throw new IntrospectionException("Indexed read method returns void: " + indexedReadMethod);
 			}
 		}
@@ -209,7 +210,7 @@ abstract class PropertyDescriptorUtils {
 			if (params.length != 2) {
 				throw new IntrospectionException("Bad indexed write method arg count: " + indexedWriteMethod);
 			}
-			if (params[0] != Integer.TYPE) {
+			if (params[0] != int.class) {
 				throw new IntrospectionException("Non int index to indexed write method: " + indexedWriteMethod);
 			}
 			if (indexedPropertyType != null) {
@@ -231,7 +232,7 @@ abstract class PropertyDescriptorUtils {
 		}
 
 		if (propertyType != null && (!propertyType.isArray() ||
-				propertyType.getComponentType() != indexedPropertyType)) {
+				propertyType.componentType() != indexedPropertyType)) {
 			throw new IntrospectionException("Type mismatch between indexed and non-indexed methods: " +
 					indexedReadMethod + " - " + indexedWriteMethod);
 		}
@@ -262,11 +263,9 @@ abstract class PropertyDescriptorUtils {
 	 */
 	private static class BasicPropertyDescriptor extends PropertyDescriptor {
 
-		@Nullable
-		private Method readMethod;
+		private @Nullable Method readMethod;
 
-		@Nullable
-		private Method writeMethod;
+		private @Nullable Method writeMethod;
 
 		private final List<Method> alternativeWriteMethods = new ArrayList<>();
 
@@ -282,8 +281,7 @@ abstract class PropertyDescriptorUtils {
 		}
 
 		@Override
-		@Nullable
-		public Method getReadMethod() {
+		public @Nullable Method getReadMethod() {
 			return this.readMethod;
 		}
 
@@ -301,8 +299,7 @@ abstract class PropertyDescriptorUtils {
 		}
 
 		@Override
-		@Nullable
-		public Method getWriteMethod() {
+		public @Nullable Method getWriteMethod() {
 			if (this.writeMethod == null && !this.alternativeWriteMethods.isEmpty()) {
 				if (this.readMethod == null) {
 					return this.alternativeWriteMethods.get(0);

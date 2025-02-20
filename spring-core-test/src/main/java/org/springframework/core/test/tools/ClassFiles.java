@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An immutable collection of {@link ClassFile} instances.
@@ -34,6 +34,7 @@ import org.springframework.lang.Nullable;
 public final class ClassFiles implements Iterable<ClassFile> {
 
 	private static final ClassFiles NONE = new ClassFiles(Collections.emptyMap());
+
 
 	private final Map<String, ClassFile> files;
 
@@ -59,6 +60,7 @@ public final class ClassFiles implements Iterable<ClassFile> {
 	public static ClassFiles of(ClassFile... ClassFiles) {
 		return none().and(ClassFiles);
 	}
+
 
 	/**
 	 * Return a new {@link ClassFiles} instance that merges classes from
@@ -110,20 +112,14 @@ public final class ClassFiles implements Iterable<ClassFile> {
 	 * @param name the fully qualified name to find
 	 * @return a {@link ClassFile} instance or {@code null}
 	 */
-	@Nullable
-	public ClassFile get(String name) {
+	public @Nullable ClassFile get(String name) {
 		return this.files.get(name);
 	}
 
+
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null || getClass() != obj.getClass()) {
-			return false;
-		}
-		return this.files.equals(((ClassFiles) obj).files);
+	public boolean equals(@Nullable Object other) {
+		return (this == other || (other instanceof ClassFiles that && this.files.equals(that.files)));
 	}
 
 	@Override

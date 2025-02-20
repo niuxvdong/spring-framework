@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.context.Lifecycle;
@@ -39,11 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Rossen Stoyanchev
  */
-public class WebSocketConnectionManagerTests {
-
+class WebSocketConnectionManagerTests {
 
 	@Test
-	public void openConnection() throws Exception {
+	void openConnection() {
 		List<String> subprotocols = List.of("abc");
 
 		TestLifecycleWebSocketClient client = new TestLifecycleWebSocketClient(false);
@@ -57,7 +57,7 @@ public class WebSocketConnectionManagerTests {
 		expectedHeaders.setSecWebSocketProtocol(subprotocols);
 
 		assertThat(client.headers).isEqualTo(expectedHeaders);
-		assertThat(client.uri).isEqualTo(new URI("/path/123"));
+		assertThat(client.uri).isEqualTo(URI.create("/path/123"));
 
 		WebSocketHandlerDecorator loggingHandler = (WebSocketHandlerDecorator) client.webSocketHandler;
 		assertThat(loggingHandler.getClass()).isEqualTo(LoggingWebSocketHandlerDecorator.class);
@@ -66,7 +66,7 @@ public class WebSocketConnectionManagerTests {
 	}
 
 	@Test
-	public void clientLifecycle() throws Exception {
+	void clientLifecycle() throws Exception {
 		TestLifecycleWebSocketClient client = new TestLifecycleWebSocketClient(false);
 		WebSocketHandler handler = new TextWebSocketHandler();
 		WebSocketConnectionManager manager = new WebSocketConnectionManager(client, handler , "/a");
@@ -111,7 +111,7 @@ public class WebSocketConnectionManagerTests {
 
 		@Override
 		public CompletableFuture<WebSocketSession> execute(WebSocketHandler handler,
-				String uriTemplate, Object... uriVars) {
+				String uriTemplate, @Nullable Object... uriVars) {
 
 			URI uri = UriComponentsBuilder.fromUriString(uriTemplate).buildAndExpand(uriVars).encode().toUri();
 			return execute(handler, null, uri);
